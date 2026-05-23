@@ -1,73 +1,86 @@
 # electron-react-starter-kit
 
-An Electron application with React and TypeScript
+An Electron starter template with React, TypeScript, Biome, and Git hooks.
 
-## Recommended IDE Setup
+## Features
 
-- [VSCode](https://code.visualstudio.com/) + [ESLint](https://marketplace.visualstudio.com/items?itemName=dbaeumer.vscode-eslint) + [Prettier](https://marketplace.visualstudio.com/items?itemName=esbenp.prettier-vscode)
+- Electron main, preload, and renderer process split
+- React 19 + TypeScript renderer
+- electron-vite for fast local dev and builds
+- Biome for formatting, linting, and import organization
+- Husky pre-commit, pre-push, and commit-message hooks
+- lint-staged for staged-file checks
+- commitlint for Conventional Commits
+- GitHub Actions CI for repo-wide validation
+- Electron Builder scripts for desktop packaging
 
-## Project Setup
+## Tech Stack
 
-### Install
+- Electron
+- React
+- TypeScript
+- Vite / electron-vite
+- Biome
+- Husky
+- lint-staged
+- commitlint
+- electron-builder
+
+## Scripts
 
 ```bash
-$ pnpm install
+pnpm dev
+pnpm build
+pnpm lint
+pnpm format
+pnpm format:check
+pnpm typecheck
+pnpm ci
 ```
 
-### Development
+## Git Workflow
+
+- `pre-commit`: runs `lint-staged` on staged files
+- `commit-msg`: enforces Conventional Commits
+- `pre-push`: runs lint, format checks, and typecheck
+- CI repeats the same checks on push and pull request
+
+Example commit:
 
 ```bash
-$ pnpm dev
+git commit -m "feat: add app shell"
 ```
 
-### Build
+## Roadmap
 
-```bash
-# For windows
-$ pnpm build:win
+Features move between these sections as PRs land and releases ship.
 
-# For macOS
-$ pnpm build:mac
+### Release 0.1
 
-# For Linux
-$ pnpm build:linux
-```
+- [x] Electron + React + TypeScript starter
+- [x] Biome linting and formatting
+- [x] Husky and lint-staged guardrails
+- [x] Commitlint and Conventional Commits
+- [x] CI checks for lint, format, typecheck, and build
 
-# 🗺️ Master Template Check-off List
+### Release 0.2
 
-## 📦 Phase 1: Repository Foundation & Code Quality
-- [ ] Install Biome: `npm install --save-dev --save-exact @biomejs/biome`
-- [ ] Configure `biome.json` at root with overrides allowing Node.js globals in `main` and `preload` folders
-- [ ] Add universal `lint` and `format` execution commands to root `package.json` scripts
-- [ ] Install Git Hook orchestration tools: `npm install --save-dev husky lint-staged`
-- [ ] Initialize Husky configuration files: `npx husky init`
-- [ ] Direct the `.husky/pre-commit` hook file script to trigger `npx lint-staged`
-- [ ] Append `lint-staged` blocks targeting `*.{js,ts,jsx,tsx}` files to run `biome check --write --no-errors-on-unmatched` inside root `package.json`
+- [ ] Settings store and IPC persistence
+- [ ] Stronger preload API typing
+- [ ] Renderer state improvements
 
-## 🚏 Phase 2: Core Electron & Cross-Process Airlock
-- [ ] Install runtime storage manager: `npm install electron-store`
-- [ ] Create a generic, empty settings store module file inside `src/main/store.ts`
-- [ ] Wire up baseline local read/write listener blocks (`ipcMain.handle`) inside `src/main/index.ts`
-- [ ] Securely expose data transmission hooks through `contextBridge.exposeInMainWorld` inside `src/preload/index.ts`
-- [ ] Declare explicit TypeScript typing scopes for `window.api` inside `src/preload/index.d.ts` to ensure frontend auto-completion
+### Release 0.3
 
-## 🎨 Phase 3: Layout, Styling, & UI Kit (Renderer)
-- [ ] Install Tailwind dependencies: `npm install -D tailwindcss postcss autoprefixer`
-- [ ] Initialize global stylesheet trackers: `npx tailwindcss init -p`
-- [ ] Validate that `tailwind.config.js` scans all components and paths within `src/renderer/`
-- [ ] Initialize component foundation layer: `npx shadcn@latest init`
-- [ ] Verify that directory path aliases (`@/*`) route cleanly to `src/renderer/src/*` inside `vite.config.ts` and `tsconfig.json`
+- [ ] UI polish and layout improvements
+- [ ] Component library or design system integration
+- [ ] Navigation and async data flow
 
-## 🚦 Phase 4: Modern Navigation & Async State Engine
-- [ ] Install TanStack ecosystem packages: `npm install @tanstack/react-router @tanstack/react-query`
-- [ ] Install development automation tooling: `npm install -D @tanstack/router-plugin`
-- [ ] Inject the `TanStackRouterVite` setup into your `src/renderer/vite.config.ts` plugins array
-- [ ] Establish explicit hash history management (`createHashHistory()`) within `src/renderer/src/main.tsx` to handle `file://` execution rules safely
-- [ ] Bind `QueryClientProvider` and `RouterProvider` wrappers around your root component tree
-- [ ] Scaffold the base folder system inside `src/renderer/src/routes/` containing:
-    - [ ] `__root.tsx` (Houses layout structures and the `<Outlet />` entry node)
-    - [ ] `index.tsx` (Placeholder homepage view)
-    - [ ] `login.tsx` (Placeholder workspace login layout)
+### Release 1.0
 
-## ⚙️ Phase 5: Build & Compilation Pipeline
-- [ ] Execute template test compilation script (`npm run build`) to ensure build assets package cleanly with zero deployment errors
+- [ ] Production-ready packaging flow
+- [ ] Template documentation finalized
+- [ ] Stable starter template release
+
+## Development Notes
+
+This repo is actively being developed as a starter template. Roadmap items may shift between releases as PRs land.
