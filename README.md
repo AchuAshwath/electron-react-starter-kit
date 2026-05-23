@@ -36,9 +36,9 @@ $ pnpm build:linux
 # 🗺️ Master Template Check-off List
 
 ## 📦 Phase 1: Repository Foundation & Code Quality
-- [ ] Install Biome: `npm install --save-dev --save-exact @biomejs/biome`
-- [ ] Configure `biome.json` at root with overrides allowing Node.js globals in `main` and `preload` folders
-- [ ] Add universal `lint` and `format` execution commands to root `package.json` scripts
+- [x] Install Biome: `npm install --save-dev --save-exact @biomejs/biome`
+- [x] Configure `biome.json` at root with overrides allowing Node.js globals in `main` and `preload` folders
+- [x] Add universal `lint` and `format` execution commands to root `package.json` scripts
 - [ ] Install Git Hook orchestration tools: `npm install --save-dev husky lint-staged`
 - [ ] Initialize Husky configuration files: `npx husky init`
 - [ ] Direct the `.husky/pre-commit` hook file script to trigger `npx lint-staged`
