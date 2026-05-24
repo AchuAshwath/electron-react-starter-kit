@@ -1,6 +1,6 @@
 {
   "$schema": "https://shadcn.com",
-  "style": "default",
+  "style": "nova",
   "rsc": false,
   "tsx": true,
   "tailwind": {
@@ -17,6 +17,5 @@
     "hooks": "./src/renderer/src/hooks",
     "utils": "@renderer/lib/utils"
   },
-  "iconLibrary": "lucide",
-  "registry": "base-ui"
+  "iconLibrary": "lucide"
 }
