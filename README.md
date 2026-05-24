@@ -65,15 +65,25 @@ Features move between these sections as PRs land and releases ship.
 
 ### Release 0.2
 
-- [ ] Settings store and IPC persistence
-- [ ] Stronger preload API typing
-- [ ] Renderer state improvements
+- [x] UI baseline with shadcn/ui and core layout shell
+- [x] Component library integration and theming
+- [x] Basic UI polish and placeholders
 
 ### Release 0.3
 
-- [ ] UI polish and layout improvements
-- [ ] Component library or design system integration
-- [ ] Navigation and async data flow
+- [ ] TanStack Router setup with app shell and routes
+- [ ] Route-level layouts and navigation structure
+
+### Release 0.4
+
+- [ ] TanStack Query setup with IPC-backed fetchers
+- [ ] Renderer data patterns and loading states
+
+### Release 0.5
+
+- [ ] Secure storage via electron-store + safe storage
+- [ ] Session/bootstrap flow and auth guard patterns
+- [ ] Preload API typing enhancements
 
 ### Release 1.0
 
