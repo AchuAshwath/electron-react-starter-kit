@@ -65,9 +65,9 @@ Features move between these sections as PRs land and releases ship.
 
 ### Release 0.2
 
-- [ ] UI baseline with shadcn/ui and core layout shell
-- [ ] Component library integration and theming
-- [ ] Basic UI polish and placeholders
+- [x] UI baseline with shadcn/ui and core layout shell
+- [x] Component library integration and theming
+- [x] Basic UI polish and placeholders
 
 ### Release 0.3
 
