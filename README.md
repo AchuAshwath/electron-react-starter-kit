@@ -71,8 +71,8 @@ Features move between these sections as PRs land and releases ship.
 
 ### Release 0.3
 
-- [ ] TanStack Router setup with app shell and routes
-- [ ] Route-level layouts and navigation structure
+- [x] TanStack Router setup with app shell and routes
+- [x] Route-level layouts and navigation structure
 
 ### Release 0.4
 

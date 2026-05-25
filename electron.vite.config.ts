@@ -1,5 +1,6 @@
 import { resolve } from "node:path";
 import tailwindcss from "@tailwindcss/vite";
+import { tanstackRouter } from "@tanstack/router-plugin/vite";
 import react from "@vitejs/plugin-react";
 import { defineConfig } from "electron-vite";
 
@@ -17,6 +18,15 @@ export default defineConfig({
 				utils: resolve("src/renderer/src/lib/utils"),
 			},
 		},
-		plugins: [react(), tailwindcss()],
+		plugins: [
+			tanstackRouter({
+				target: "react",
+				autoCodeSplitting: true,
+				routesDirectory: resolve("./src/renderer/src/routes"),
+				generatedRouteTree: resolve("./src/renderer/src/routeTree.gen.ts"),
+			}),
+			react(),
+			tailwindcss(),
+		],
 	},
 });
