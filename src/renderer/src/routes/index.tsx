@@ -1,11 +1,21 @@
+import { createFileRoute } from "@tanstack/react-router";
 import { InfoIcon } from "lucide-react";
-import electronLogo from "./assets/electron.svg";
-import { Alert, AlertDescription } from "./components/ui/alert";
-import { Button } from "./components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
-import Versions from "./components/Versions";
+import electronLogo from "../assets/electron.svg";
+import { Alert, AlertDescription } from "../components/ui/alert";
+import { Button } from "../components/ui/button";
+import {
+	Card,
+	CardContent,
+	CardHeader,
+	CardTitle,
+} from "../components/ui/card";
+import Versions from "../components/Versions";
 
-function App(): React.JSX.Element {
+export const Route = createFileRoute("/")({
+	component: TemplateLandingRoute,
+});
+
+function TemplateLandingRoute(): React.JSX.Element {
 	const ipcHandle = (): void => window.electron.ipcRenderer.send("ping");
 
 	return (
@@ -56,5 +66,3 @@ function App(): React.JSX.Element {
 		</div>
 	);
 }
-
-export default App;
