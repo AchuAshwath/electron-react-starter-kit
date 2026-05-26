@@ -1,8 +1,19 @@
 import { electronAPI } from "@electron-toolkit/preload";
-import { contextBridge } from "electron";
+import { contextBridge, ipcRenderer } from "electron";
 
-// Custom APIs for renderer
-const api = {};
+// Custom APIs for renderer — each function maps to an ipcMain.handle channel
+const api = {
+	/** Fetch the Electron app version from the main process */
+	getAppVersion: (): Promise<string> => ipcRenderer.invoke("get-app-version"),
+	/** Fetch system info (platform, arch, versions) from the main process */
+	getSystemInfo: (): Promise<{
+		platform: string;
+		arch: string;
+		nodeVersion: string;
+		chromeVersion: string;
+		electronVersion: string;
+	}> => ipcRenderer.invoke("get-system-info"),
+};
 
 // Use `contextBridge` APIs to expose Electron APIs to
 // renderer only if context isolation is enabled, otherwise
