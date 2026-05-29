@@ -49,8 +49,23 @@ app.whenReady().then(() => {
 		optimizer.watchWindowShortcuts(window);
 	});
 
-	// IPC test
+	// IPC test (fire-and-forget)
 	ipcMain.on("ping", () => console.log("pong"));
+
+	// IPC handlers — two-way request/response (used with ipcRenderer.invoke + TanStack Query)
+	ipcMain.handle("get-app-version", () => {
+		return app.getVersion();
+	});
+
+	ipcMain.handle("get-system-info", () => {
+		return {
+			platform: process.platform,
+			arch: process.arch,
+			nodeVersion: process.versions.node,
+			chromeVersion: process.versions.chrome,
+			electronVersion: process.versions.electron,
+		};
+	});
 
 	createWindow();
 

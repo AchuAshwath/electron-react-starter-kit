@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { InfoIcon } from "lucide-react";
+import { InfoIcon, MonitorIcon, ZapIcon } from "lucide-react";
 import electronLogo from "../assets/electron.svg";
 import { Alert, AlertDescription } from "../components/ui/alert";
 import { Button } from "../components/ui/button";
@@ -10,10 +10,76 @@ import {
 	CardTitle,
 } from "../components/ui/card";
 import Versions from "../components/Versions";
+import { useAppVersion, useSystemInfo } from "../core/system/system.hooks";
 
 export const Route = createFileRoute("/")({
 	component: TemplateLandingRoute,
 });
+
+function SystemInfoCard(): React.JSX.Element {
+	const versionQuery = useAppVersion();
+	const systemQuery = useSystemInfo();
+
+	return (
+		<Card className="w-full">
+			<CardHeader className="flex flex-row items-center gap-2 pb-2">
+				<MonitorIcon className="h-4 w-4 text-muted-foreground" />
+				<CardTitle className="text-sm font-medium">
+					System Info{" "}
+					<span className="ml-2 text-xs font-normal text-muted-foreground">
+						fetched via IPC + TanStack Query
+					</span>
+				</CardTitle>
+			</CardHeader>
+			<CardContent className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
+				<InfoRow
+					label="App Version"
+					value={
+						versionQuery.isPending
+							? "Loading…"
+							: versionQuery.isError
+								? "Error"
+								: `v${versionQuery.data}`
+					}
+				/>
+				{systemQuery.data && (
+					<>
+						<InfoRow label="Platform" value={systemQuery.data.platform} />
+						<InfoRow label="Arch" value={systemQuery.data.arch} />
+						<InfoRow label="Node" value={systemQuery.data.nodeVersion} />
+						<InfoRow label="Chrome" value={systemQuery.data.chromeVersion} />
+						<InfoRow
+							label="Electron"
+							value={systemQuery.data.electronVersion}
+						/>
+					</>
+				)}
+				{systemQuery.isPending && (
+					<p className="col-span-full text-xs text-muted-foreground">
+						Loading system info…
+					</p>
+				)}
+			</CardContent>
+		</Card>
+	);
+}
+
+function InfoRow({
+	label,
+	value,
+}: {
+	label: string;
+	value: string;
+}): React.JSX.Element {
+	return (
+		<div className="flex flex-col gap-0.5 rounded-md bg-muted/50 px-3 py-2">
+			<span className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+				{label}
+			</span>
+			<span className="font-mono text-xs">{value}</span>
+		</div>
+	);
+}
 
 function TemplateLandingRoute(): React.JSX.Element {
 	const ipcHandle = (): void => window.electron.ipcRenderer.send("ping");
@@ -63,6 +129,15 @@ function TemplateLandingRoute(): React.JSX.Element {
 					</Alert>
 				</CardContent>
 			</Card>
+
+			{/* TanStack Query + IPC demo */}
+			<div className="flex w-full flex-col gap-2">
+				<div className="flex items-center gap-2 text-left">
+					<ZapIcon className="h-4 w-4 text-muted-foreground" />
+					<p className="text-sm font-medium">TanStack Query + IPC Demo</p>
+				</div>
+				<SystemInfoCard />
+			</div>
 		</div>
 	);
 }

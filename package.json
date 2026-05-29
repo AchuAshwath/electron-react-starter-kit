@@ -20,8 +20,8 @@
 		"postinstall": "electron-builder install-app-deps",
 		"build:unpack": "npm run build && electron-builder --dir",
 		"build:win": "npm run build && electron-builder --win",
-		"build:mac": "electron-vite build && electron-builder --mac",
-		"build:linux": "electron-vite build && electron-builder --linux",
+		"build:mac": "npm run build && electron-builder --mac",
+		"build:linux": "npm run build && electron-builder --linux",
 		"prepare": "husky"
 	},
 	"lint-staged": {
@@ -34,6 +34,8 @@
 		"@electron-toolkit/preload": "^3.0.2",
 		"@electron-toolkit/utils": "^4.0.0",
 		"@tailwindcss/vite": "^4.3.0",
+		"@tanstack/react-query": "^5.100.14",
+		"@tanstack/react-query-devtools": "^5.100.14",
 		"@tanstack/react-router": "^1.170.8",
 		"@tanstack/react-router-devtools": "^1.167.0",
 		"class-variance-authority": "^0.7.1",
