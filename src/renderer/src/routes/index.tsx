@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { InfoIcon, MonitorIcon, ZapIcon } from "lucide-react";
 import electronLogo from "../assets/electron.svg";
@@ -11,15 +10,15 @@ import {
 	CardTitle,
 } from "../components/ui/card";
 import Versions from "../components/Versions";
-import { appVersionQueryOptions, systemInfoQueryOptions } from "../lib/queries";
+import { useAppVersion, useSystemInfo } from "../core/system/system.hooks";
 
 export const Route = createFileRoute("/")({
 	component: TemplateLandingRoute,
 });
 
 function SystemInfoCard(): React.JSX.Element {
-	const versionQuery = useQuery(appVersionQueryOptions);
-	const systemQuery = useQuery(systemInfoQueryOptions);
+	const versionQuery = useAppVersion();
+	const systemQuery = useSystemInfo();
 
 	return (
 		<Card className="w-full">
