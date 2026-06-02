@@ -173,7 +173,29 @@ sequenceDiagram
 | `pnpm lint` | `biome check .` | Runs high-speed linting and analysis checks |
 | `pnpm format` | `biome format --write .` | Formats all workspace source files |
 | `pnpm typecheck` | `typecheck:node && typecheck:web` | Validates TypeScript compliance across all processes |
-| `pnpm ci` | `pnpm lint && pnpm format:check && pnpm typecheck && pnpm build` | Local verification mimicking full CI run |
+| `pnpm test` | `vitest run` | Runs the unit test suite once |
+| `pnpm test:watch` | `vitest` | Starts Vitest in watch mode for local development |
+| `pnpm test:coverage` | `vitest run --coverage` | Runs unit tests and writes a V8 coverage report |
+| `pnpm ci` | `pnpm lint && pnpm format:check && pnpm typecheck && pnpm test && pnpm build` | Local verification mimicking full CI run |
+
+---
+
+## Testing Convention
+
+Tests live beside the source files they cover using the `*.test.ts` or `*.test.tsx` suffix. This keeps behavior, implementation, and regression coverage easy to review together as each feature grows.
+
+```text
+src/renderer/src/lib/utils.ts
+src/renderer/src/lib/utils.test.ts
+
+src/renderer/src/core/system/system.queries.ts
+src/renderer/src/core/system/system.queries.test.ts
+
+src/renderer/src/core/system/system.hooks.ts
+src/renderer/src/core/system/system.hooks.test.tsx
+```
+
+For TkDodo-style Query Factories, test the query key hierarchy and the preload bridge call beside the query file. Hook and component tests should use Testing Library with a fresh `QueryClient` per test from `src/renderer/src/test/render.tsx`.
 
 ---
 
@@ -186,6 +208,7 @@ sequenceDiagram
 - [x] Responsive layout shell using shadcn/ui components
 - [x] File-based routing via TanStack Router
 - [x] TkDodo modular Query Factory pattern with TanStack Query
-- [ ] Establish Vitest + Testing Library unit test suite
+- [x] Establish Vitest + Testing Library unit test suite
 - [ ] Implement secure electron-store / SafeStorage user configuration caching
+- [ ] Add theme switcher with persisted light/dark/system preference
 - [ ] Unified desktop application updater integration and configuration
