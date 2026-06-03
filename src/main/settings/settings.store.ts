@@ -1,5 +1,9 @@
 import Store from "electron-store";
-import { defaultSettings, type UserSettings } from "./settings.types";
+import {
+	defaultSettings,
+	type UserSettings,
+	type UserSettingsPatch,
+} from "./settings.types";
 
 type settingStoreSchema = {
 	settings: UserSettings;
@@ -16,7 +20,7 @@ export function getSettings(): UserSettings {
 	return store.get("settings");
 }
 
-export function updateSettings(patch: Partial<UserSettings>): UserSettings {
+export function updateSettings(patch: UserSettingsPatch): UserSettings {
 	const currentSettings = getSettings();
 
 	const nextSettings: UserSettings = {
