@@ -1,4 +1,8 @@
 import { ElectronAPI } from "@electron-toolkit/preload";
+import type {
+	UserSettings,
+	UserSettingsPatch,
+} from "../main/settings/settings.types.ts";
 
 declare global {
 	interface Window {
@@ -14,6 +18,12 @@ declare global {
 				chromeVersion: string;
 				electronVersion: string;
 			}>;
+
+			settings: {
+				get: () => Promise<UserSettings>;
+				update: (patch: UserSettingsPatch) => Promise<UserSettings>;
+				reset: () => Promise<UserSettings>;
+			};
 		};
 	}
 }
