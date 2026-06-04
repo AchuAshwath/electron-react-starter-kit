@@ -5,7 +5,7 @@ import { userSettingsPatchSchema } from "./settings.types";
 export const settingsIpcChannels = {
 	get: "settings:get",
 	update: "settings:update",
-	reset: "settings:resert",
+	reset: "settings:reset",
 } as const;
 
 export function registerSettingsIpcHandlers(): void {

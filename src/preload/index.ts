@@ -18,10 +18,10 @@ const api = {
 		electronVersion: string;
 	}> => ipcRenderer.invoke("get-system-info"),
 
-	settigns: {
+	settings: {
 		get: (): Promise<UserSettings> => ipcRenderer.invoke("settings:get"),
 		update: (patch: UserSettingsPatch): Promise<UserSettings> =>
-			ipcRenderer.invoke("settings:udpate", patch),
+			ipcRenderer.invoke("settings:update", patch),
 		reset: (): Promise<UserSettings> => ipcRenderer.invoke("settings:reset"),
 	},
 };
