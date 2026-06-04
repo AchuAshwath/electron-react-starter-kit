@@ -1,5 +1,9 @@
 import { electronAPI } from "@electron-toolkit/preload";
 import { contextBridge, ipcRenderer } from "electron";
+import type {
+	UserSettings,
+	UserSettingsPatch,
+} from "../main/settings/settings.types";
 
 // Custom APIs for renderer — each function maps to an ipcMain.handle channel
 const api = {
@@ -13,6 +17,13 @@ const api = {
 		chromeVersion: string;
 		electronVersion: string;
 	}> => ipcRenderer.invoke("get-system-info"),
+
+	settings: {
+		get: (): Promise<UserSettings> => ipcRenderer.invoke("settings:get"),
+		update: (patch: UserSettingsPatch): Promise<UserSettings> =>
+			ipcRenderer.invoke("settings:update", patch),
+		reset: (): Promise<UserSettings> => ipcRenderer.invoke("settings:reset"),
+	},
 };
 
 // Use `contextBridge` APIs to expose Electron APIs to

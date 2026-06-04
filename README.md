@@ -157,10 +157,49 @@ sequenceDiagram
            queryOptions({
                queryKey: [...systemQueries.all(), "custom"],
                queryFn: () => window.api.getCustomData(),
-               staleTime: 60 * 1000, // cache fresh for 1 minute
-           }),
-   };
-   ```
+                staleTime: 60 * 1000, // cache fresh for 1 minute
+            }),
+    };
+    ```
+
+---
+
+## User Settings Storage
+
+User preferences are persisted in the Electron main process with `electron-store`. Renderer code does not read or write storage directly; it talks to the typed preload API, which forwards requests to validated IPC handlers.
+
+```mermaid
+sequenceDiagram
+    participant Component as React Component
+    participant Hook as Settings Hook
+    participant Query as Query Factory
+    participant Bridge as Preload API
+    participant Main as Main IPC Handler
+    participant Store as electron-store
+
+    Component->>Hook: useSettings()
+    Hook->>Query: settingsQueries.current()
+    Query->>Bridge: window.api.settings.get()
+    Bridge->>Main: ipcRenderer.invoke("settings:get")
+    Main->>Store: getSettings()
+    Store-->>Main: UserSettings
+    Main-->>Bridge: UserSettings
+    Bridge-->>Query: UserSettings
+    Query-->>Hook: cached settings
+    Hook-->>Component: render settings state
+```
+
+Settings updates are validated with Zod at the IPC boundary before they reach persistence:
+
+```typescript
+ipcMain.handle(settingsIpcChannels.update, (_, patch: unknown) => {
+    const parsedPatch = userSettingsPatchSchema.parse(patch);
+
+    return updateSettings(parsedPatch);
+});
+```
+
+Normal user preferences such as theme choice, window bounds, and startup options belong in `electron-store`. Sensitive values such as access tokens, refresh tokens, API keys, and passwords should live in a separate secret-storage module backed by Electron `safeStorage`.
 
 ---
 
@@ -209,6 +248,7 @@ For TkDodo-style Query Factories, test the query key hierarchy and the preload b
 - [x] File-based routing via TanStack Router
 - [x] TkDodo modular Query Factory pattern with TanStack Query
 - [x] Establish Vitest + Testing Library unit test suite
-- [ ] Implement secure electron-store / SafeStorage user configuration caching
+- [x] Implement typed electron-store user settings persistence
 - [ ] Add theme switcher with persisted light/dark/system preference
+- [ ] Add SafeStorage-backed secret persistence
 - [ ] Unified desktop application updater integration and configuration
