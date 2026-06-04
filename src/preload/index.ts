@@ -4,6 +4,7 @@ import type {
 	UserSettings,
 	UserSettingsPatch,
 } from "../main/settings/settings.types";
+import type { ThemeState } from "../main/theme/theme.types";
 
 // Custom APIs for renderer — each function maps to an ipcMain.handle channel
 const api = {
@@ -23,6 +24,23 @@ const api = {
 		update: (patch: UserSettingsPatch): Promise<UserSettings> =>
 			ipcRenderer.invoke("settings:update", patch),
 		reset: (): Promise<UserSettings> => ipcRenderer.invoke("settings:reset"),
+	},
+
+	theme: {
+		get: (): Promise<ThemeState> => ipcRenderer.invoke("theme:get"),
+		setPreference: (theme: UserSettings["theme"]): Promise<ThemeState> =>
+			ipcRenderer.invoke("theme:set-preference", theme),
+		onUpdated: (callback: (theme: ThemeState) => void): (() => void) => {
+			const listener = (_: Electron.IpcRendererEvent, theme: ThemeState) => {
+				callback(theme);
+			};
+
+			ipcRenderer.on("theme:updated", listener);
+
+			return () => {
+				ipcRenderer.removeListener("theme:updated", listener);
+			};
+		},
 	},
 };
 

@@ -3,6 +3,7 @@ import type {
 	UserSettings,
 	UserSettingsPatch,
 } from "../main/settings/settings.types.ts";
+import type { ThemeState } from "../main/theme/theme.types.ts";
 
 declare global {
 	interface Window {
@@ -23,6 +24,12 @@ declare global {
 				get: () => Promise<UserSettings>;
 				update: (patch: UserSettingsPatch) => Promise<UserSettings>;
 				reset: () => Promise<UserSettings>;
+			};
+
+			theme: {
+				get: () => Promise<ThemeState>;
+				setPreference: (theme: UserSettings["theme"]) => Promise<ThemeState>;
+				onUpdated: (callback: (theme: ThemeState) => void) => () => void;
 			};
 		};
 	}
