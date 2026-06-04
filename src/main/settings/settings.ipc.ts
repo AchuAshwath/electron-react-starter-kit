@@ -1,4 +1,8 @@
 import { ipcMain } from "electron";
+import {
+	applyThemePreference,
+	broadcastThemeState,
+} from "../theme/theme.service";
 import { getSettings, resetSettings, updateSettings } from "./settings.store";
 import { userSettingsPatchSchema } from "./settings.types";
 
@@ -15,11 +19,22 @@ export function registerSettingsIpcHandlers(): void {
 
 	ipcMain.handle(settingsIpcChannels.update, (_, patch: unknown) => {
 		const parsedPatch = userSettingsPatchSchema.parse(patch);
+		const settings = updateSettings(parsedPatch);
 
-		return updateSettings(parsedPatch);
+		if (parsedPatch.theme) {
+			applyThemePreference(parsedPatch.theme);
+			broadcastThemeState();
+		}
+
+		return settings;
 	});
 
 	ipcMain.handle(settingsIpcChannels.reset, () => {
-		return resetSettings();
+		const settings = resetSettings();
+
+		applyThemePreference(settings.theme);
+		broadcastThemeState();
+
+		return settings;
 	});
 }
