@@ -6,19 +6,26 @@ const { storeState } = vi.hoisted(() => ({
 }));
 
 vi.mock("electron-store", () => {
-	return {
-		default: vi.fn().mockImplementation(({ defaults }) => {
+	class MockStore {
+		constructor({ defaults }: { defaults: Record<string, unknown> }) {
 			storeState.clear();
 
 			for (const [key, value] of Object.entries(defaults)) {
 				storeState.set(key, structuredClone(value));
 			}
+		}
 
-			return {
-				get: (key: string) => storeState.get(key),
-				set: (key: string, value: unknown) => storeState.set(key, value),
-			};
-		}),
+		get(key: string) {
+			return storeState.get(key);
+		}
+
+		set(key: string, value: unknown) {
+			storeState.set(key, value);
+		}
+	}
+
+	return {
+		default: MockStore,
 	};
 });
 
@@ -33,6 +40,16 @@ describe("settings store", () => {
 
 	it("returns default settings", () => {
 		expect(getSettings()).toEqual(defaultSettings);
+	});
+
+	it("resets invalid persisted settings back to defaults", () => {
+		storeState.set("settings", {
+			...defaultSettings,
+			theme: "banana",
+		});
+
+		expect(getSettings()).toEqual(defaultSettings);
+		expect(storeState.get("settings")).toEqual(defaultSettings);
 	});
 
 	it("updates top-level and nested settings without dropping sibling values", () => {

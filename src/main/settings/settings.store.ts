@@ -3,6 +3,7 @@ import {
 	defaultSettings,
 	type UserSettings,
 	type UserSettingsPatch,
+	userSettingsSchema,
 } from "./settings.types";
 
 type settingStoreSchema = {
@@ -17,7 +18,16 @@ const store = new Store<settingStoreSchema>({
 });
 
 export function getSettings(): UserSettings {
-	return store.get("settings");
+	const settings = store.get("settings");
+	const parsedSettings = userSettingsSchema.safeParse(settings);
+
+	if (parsedSettings.success) {
+		return parsedSettings.data;
+	}
+
+	store.set("settings", defaultSettings);
+
+	return defaultSettings;
 }
 
 export function updateSettings(patch: UserSettingsPatch): UserSettings {
