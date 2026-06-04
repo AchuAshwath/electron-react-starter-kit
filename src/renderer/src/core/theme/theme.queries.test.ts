@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { defaultSettings } from "../../../../main/settings/settings.types";
-import { settingsQueries } from "./settings.queries";
+import { themeQueries } from "./theme.queries";
+import type { ThemeState } from "./theme.types";
+
+const themeState: ThemeState = {
+	preference: "system",
+	resolvedTheme: "dark",
+	systemPrefersDark: true,
+};
 
 const apiMock = {
 	getAppVersion: vi.fn<Window["api"]["getAppVersion"]>(),
@@ -17,7 +23,7 @@ const apiMock = {
 	},
 };
 
-describe("settingsQueries", () => {
+describe("themeQueries", () => {
 	beforeEach(() => {
 		vi.resetAllMocks();
 		Object.defineProperty(window, "api", {
@@ -27,18 +33,16 @@ describe("settingsQueries", () => {
 	});
 
 	it("builds hierarchical query keys", () => {
-		expect(settingsQueries.all()).toEqual(["settings"]);
-		expect(settingsQueries.current().queryKey).toEqual(["settings", "current"]);
+		expect(themeQueries.all()).toEqual(["theme"]);
+		expect(themeQueries.current().queryKey).toEqual(["theme", "current"]);
 	});
 
-	it("fetches current settings through the preload bridge", async () => {
-		apiMock.settings.get.mockResolvedValue(defaultSettings);
+	it("fetches current theme through the preload bridge", async () => {
+		apiMock.theme.get.mockResolvedValue(themeState);
 
-		const queryFn = settingsQueries.current().queryFn as () => Promise<
-			typeof defaultSettings
-		>;
+		const queryFn = themeQueries.current().queryFn as () => Promise<ThemeState>;
 
-		await expect(queryFn()).resolves.toEqual(defaultSettings);
-		expect(apiMock.settings.get).toHaveBeenCalledTimes(1);
+		await expect(queryFn()).resolves.toEqual(themeState);
+		expect(apiMock.theme.get).toHaveBeenCalledTimes(1);
 	});
 });
