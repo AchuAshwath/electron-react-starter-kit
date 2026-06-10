@@ -3,8 +3,17 @@ import { electronApp, is, optimizer } from "@electron-toolkit/utils";
 import { app, BrowserWindow, ipcMain, shell } from "electron";
 import icon from "../../resources/icon.png?asset";
 import { registerSettingsIpcHandlers } from "./settings/settings.ipc";
+import { registerThemeIpcHandlers } from "./theme/theme.ipc";
+import { syncNativeThemeFromSettings } from "./theme/theme.service";
 
 function createWindow(): void {
+	const initialThemeState = syncNativeThemeFromSettings();
+	const initialThemeSearch = new URLSearchParams({
+		themePreference: initialThemeState.preference,
+		resolvedTheme: initialThemeState.resolvedTheme,
+		systemPrefersDark: String(initialThemeState.systemPrefersDark),
+	});
+
 	// Create the browser window.
 	const mainWindow = new BrowserWindow({
 		width: 900,
@@ -30,9 +39,17 @@ function createWindow(): void {
 	// HMR for renderer base on electron-vite cli.
 	// Load the remote URL for development or the local html file for production.
 	if (is.dev && process.env.ELECTRON_RENDERER_URL) {
-		mainWindow.loadURL(process.env.ELECTRON_RENDERER_URL);
+		const rendererUrl = new URL(process.env.ELECTRON_RENDERER_URL);
+
+		for (const [key, value] of initialThemeSearch) {
+			rendererUrl.searchParams.set(key, value);
+		}
+
+		mainWindow.loadURL(rendererUrl.toString());
 	} else {
-		mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
+		mainWindow.loadFile(join(__dirname, "../renderer/index.html"), {
+			query: Object.fromEntries(initialThemeSearch),
+		});
 	}
 }
 
@@ -69,6 +86,7 @@ app.whenReady().then(() => {
 	});
 
 	registerSettingsIpcHandlers();
+	registerThemeIpcHandlers();
 
 	createWindow();
 

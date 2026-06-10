@@ -203,6 +203,47 @@ Normal user preferences such as theme choice, window bounds, and startup options
 
 ---
 
+## Theme Switching
+
+Theme switching follows the same IPC and Query Factory architecture as settings, with Electron's `nativeTheme` acting as the desktop-aware source for resolving system preference.
+
+```mermaid
+sequenceDiagram
+    participant Switcher as ThemeSwitcher
+    participant Provider as ThemeProvider
+    participant Query as Theme Query
+    participant Bridge as Preload API
+    participant Main as Theme IPC Handler
+    participant Native as Electron nativeTheme
+    participant Store as electron-store
+
+    Switcher->>Provider: setTheme("dark")
+    Provider->>Query: mutate preference
+    Query->>Bridge: window.api.theme.setPreference("dark")
+    Bridge->>Main: ipcRenderer.invoke("theme:set-preference")
+    Main->>Store: persist settings.theme
+    Main->>Native: nativeTheme.themeSource = "dark"
+    Main-->>Bridge: ThemeState
+    Bridge-->>Provider: cached ThemeState
+    Provider->>Provider: apply .dark to documentElement
+```
+
+The renderer does not duplicate persisted theme state in `localStorage`. The main process reads `settings.theme`, asks Electron to resolve the final light or dark mode, and sends a typed `ThemeState` through preload:
+
+```typescript
+type ThemeState = {
+    preference: "system" | "light" | "dark";
+    resolvedTheme: "light" | "dark";
+    systemPrefersDark: boolean;
+};
+```
+
+To reduce first-paint flicker, the main process passes the initial theme state into the renderer URL before the window loads. The renderer seeds React Query from that value and applies the shadcn-compatible `light` or `dark` class before React renders. Runtime OS theme changes are delivered through `window.api.theme.onUpdated`, which returns an unsubscribe callback for React effects.
+
+Theme tests live beside the files they cover: main-process service tests cover `nativeTheme` integration, query tests cover preload calls, and provider/component tests cover root class application and user interaction.
+
+---
+
 ## 📜 Available Scripts
 
 | Script | Command | Purpose |
@@ -249,6 +290,6 @@ For TkDodo-style Query Factories, test the query key hierarchy and the preload b
 - [x] TkDodo modular Query Factory pattern with TanStack Query
 - [x] Establish Vitest + Testing Library unit test suite
 - [x] Implement typed electron-store user settings persistence
-- [ ] Add theme switcher with persisted light/dark/system preference
+- [x] Add theme switcher with persisted light/dark/system preference
 - [ ] Add SafeStorage-backed secret persistence
 - [ ] Unified desktop application updater integration and configuration

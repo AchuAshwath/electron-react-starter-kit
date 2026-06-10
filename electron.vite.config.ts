@@ -5,7 +5,13 @@ import react from "@vitejs/plugin-react";
 import { defineConfig } from "electron-vite";
 
 export default defineConfig({
-	main: {},
+	main: {
+		build: {
+			externalizeDeps: {
+				exclude: ["electron-store"],
+			},
+		},
+	},
 	preload: {},
 	renderer: {
 		resolve: {
