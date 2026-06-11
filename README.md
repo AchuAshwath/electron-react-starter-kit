@@ -26,20 +26,27 @@ Discover the core stack driving this starter template:
 | **TanStack Router** | ![TanStack Router](https://img.shields.io/badge/TanStack%20Router-v1-FF4154?style=flat-square&logo=react&logoColor=white) | Fully type-safe, file-based routing and layout management |
 | **TanStack Query** | ![TanStack Query](https://img.shields.io/badge/TanStack%20Query-v5-FF4154?style=flat-square&logo=react&logoColor=white) | Asynchronous state, loading states, and robust query caching |
 | **Tailwind CSS** | ![Tailwind CSS](https://img.shields.io/badge/Tailwind--CSS-v4-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white) | Utility-first styling with the modern Tailwind v4 compilation |
+| **shadcn/ui** | ![shadcn/ui](https://img.shields.io/badge/shadcn%2Fui-components-000000?style=flat-square) | Accessible component primitives styled with Tailwind CSS |
+| **electron-store** | ![electron-store](https://img.shields.io/badge/electron--store-settings-47848F?style=flat-square&logo=electron&logoColor=white) | Main-process persistence for normal user preferences |
+| **Zod** | ![Zod](https://img.shields.io/badge/Zod-validation-3068B7?style=flat-square) | Runtime validation for IPC payloads and settings contracts |
+| **Vitest** | ![Vitest](https://img.shields.io/badge/Vitest-tests-6E9F18?style=flat-square&logo=vitest&logoColor=white) | Unit and component testing for renderer and main-process modules |
 | **Biome** | ![Biome](https://img.shields.io/badge/Biome-v2-E36D4B?style=flat-square&logo=biome&logoColor=white) | Blazing fast replacement for ESLint, Prettier, and import organization |
 
 ---
 
 ## ✨ Features Checklist
 
-* ⚡️ **electron-vite Integration**: Fast Hot Module Replacement (HMR) in renderer and hot-reload in main process.
-* 🛡️ **Secure Context Bridge**: Securely isolated main and renderer processes using `contextBridge` to mitigate XSS risks.
-* 📦 **Modular Query Factories**: Scalable hierarchy of queries and hooks grouped by feature domain (TkDodo pattern).
-* 🗂 **File-Based Routing**: Type-safe layout, nested routes, and automated routing tree generation via TanStack Router.
-* 🎨 **Modern Theming (Shadcn/ui)**: Clean base system with Tailwind v4 styling, customized dark/light layout, and standard UI blocks.
-* 🛠 **Git Guardrails & Hooks**: Automated staging checks (`lint-staged`), Conventional Commits verification (`commitlint`), and git hooks (`Husky`).
-* 🤖 **Continuous Integration**: Seamless GitHub Actions workflow verifying formatting, linting, types, and builds.
-* 📦 **Desktop Packaging**: Ready-to-go `electron-builder` configuration for building production Windows, macOS, and Linux apps.
+* ⚡️ **electron-vite Integration**: Split main, preload, and renderer builds with fast HMR in development and production bundling through Vite.
+* 🛡️ **Preload-First Electron API**: Renderer code uses a typed `window.api` surface instead of importing Electron or calling `ipcRenderer` directly.
+* 📦 **Modular Query Factories**: Feature-specific TanStack Query factories and hooks keep IPC-backed renderer state predictable and easy to test.
+* 🗂 **File-Based Routing**: TanStack Router provides generated route types, nested layouts, and route-level code organization.
+* 🎨 **Modern UI Foundation**: Tailwind CSS v4, shadcn/ui-style primitives, lucide icons, and shared utilities are preconfigured.
+* 🌓 **Desktop-Aware Theme Switching**: Light, dark, and system themes are persisted through main-process settings and resolved with Electron `nativeTheme`.
+* 💾 **Validated User Settings**: `electron-store` persists normal preferences, while Zod validates settings updates at the IPC boundary.
+* 🧪 **Testing Setup**: Vitest, Testing Library, jsdom, coverage, and local test helpers are ready for main-process services, query factories, hooks, and components.
+* 🛠 **Git Guardrails & Hooks**: Husky, lint-staged, and commitlint enforce formatting, linting, and Conventional Commits.
+* 🤖 **Continuous Integration**: GitHub Actions verifies install, lint, format, typecheck, tests, and production build.
+* 📦 **Desktop Packaging**: `electron-builder` is configured for Windows, macOS, and Linux builds with starter icons and platform resources.
 
 ---
 
@@ -47,32 +54,37 @@ Discover the core stack driving this starter template:
 
 ```text
 .
-├── .github/workflows/ci.yml   # Automatic lint, check, and build verification
-├── .husky/                    # Commit-message, pre-commit, and pre-push hooks
-├── resources/                 # Static branding assets (app icons)
+├── .github/workflows/ci.yml     # Automatic lint, typecheck, test, and build verification
+├── .husky/                      # Commit-message, pre-commit, and pre-push hooks
+├── resources/                   # Runtime app assets
+├── build/                       # Platform icons, entitlements, and build resources
 ├── src/
 │   ├── main/
-│   │   └── index.ts           # Electron main process (lifecycle & IPC handlers)
+│   │   ├── index.ts             # Electron lifecycle, BrowserWindow, and IPC registration
+│   │   ├── settings/            # Zod-validated electron-store settings module
+│   │   └── theme/               # nativeTheme integration and theme IPC handlers
 │   ├── preload/
-│   │   ├── index.ts           # Exposes secure contextBridge APIs to the renderer
-│   │   └── index.d.ts         # Global window typescript definitions
+│   │   ├── index.ts             # Typed contextBridge API exposed to the renderer
+│   │   └── index.d.ts           # Global window API types
 │   └── renderer/
-│       ├── index.html         # Main app HTML window container
+│       ├── index.html           # CSP and renderer mount point
 │       └── src/
-│           ├── main.tsx       # Renderer app entry point
-│           ├── env.d.ts       # Global build environmental typings
-│           ├── routeTree.gen.ts # Router auto-generated routing tree
-│           ├── assets/        # Styles, icons, and theme configuration
-│           ├── components/    # Reusable shared components
+│           ├── main.tsx         # React, Router, Query Client, and providers
+│           ├── env.d.ts         # Renderer environment typings
+│           ├── routeTree.gen.ts # TanStack Router generated route tree
+│           ├── assets/          # Global CSS and static renderer assets
+│           ├── components/      # Shared UI and feature components
 │           ├── core/
-│           │   └── system/    # Domain-specific Query Factory (queries, hooks, types)
-│           ├── lib/
-│           │   ├── query-client.ts # Configured React Query client configuration
-│           │   └── utils.ts   # Style merging utilities
-│           └── routes/        # Layout and route components
-├── tsconfig.json              # TypeScript workspace compiler settings
-├── biome.json                 # Formatting and linting configuration
-└── electron-builder.yml       # Production packaging options
+│           │   ├── settings/    # Settings queries and hooks
+│           │   ├── system/      # System info queries and hooks
+│           │   └── theme/       # Theme provider, hooks, queries, and DOM helpers
+│           ├── lib/             # Query client and shared utilities
+│           ├── routes/          # File-based route modules
+│           └── test/            # Testing Library setup and render helpers
+├── vitest.config.ts             # Vitest, jsdom, Testing Library, and coverage setup
+├── tsconfig*.json               # TypeScript configs for node and web targets
+├── biome.json                   # Formatting, linting, and import organization
+└── electron-builder.yml         # Production packaging options
 ```
 
 ---
@@ -105,7 +117,7 @@ You need [Node.js](https://nodejs.org/) (v22 or newer) and [pnpm](https://pnpm.i
 
 ## 🔄 IPC & Querying Architecture
 
-This starter kit implements the **TkDodo Query Factory pattern** for seamless and type-safe main-to-renderer communication.
+This starter kit implements the **TkDodo Query Factory pattern** for seamless and type-safe main-to-renderer communication. The current preload API exposes app version, system info, settings, and theme capabilities through `window.api`, while the renderer consumes those APIs through feature-specific query factories and hooks.
 
 ```mermaid
 sequenceDiagram
@@ -127,7 +139,7 @@ sequenceDiagram
 
 ### Adding a New IPC Route & Query
 
-1. **Expose IPC endpoint in `src/main/index.ts`:**
+1. **Register the IPC handler in the main process:**
    ```typescript
    ipcMain.handle("get-custom-data", async (_, args) => {
        return { success: true, data: "Hello World" };
@@ -149,7 +161,7 @@ sequenceDiagram
    }
    ```
 
-3. **Incorporate into Domain Query Factory (`src/renderer/src/core/system/`)**:
+3. **Incorporate into a domain Query Factory (`src/renderer/src/core/<feature>/`)**:
    ```typescript
    export const systemQueries = {
        // ...
@@ -271,25 +283,58 @@ src/renderer/src/lib/utils.test.ts
 src/renderer/src/core/system/system.queries.ts
 src/renderer/src/core/system/system.queries.test.ts
 
-src/renderer/src/core/system/system.hooks.ts
-src/renderer/src/core/system/system.hooks.test.tsx
+src/renderer/src/core/theme/theme-provider.tsx
+src/renderer/src/core/theme/theme-provider.test.tsx
+
+src/main/settings/settings.store.ts
+src/main/settings/settings.store.test.ts
 ```
 
-For TkDodo-style Query Factories, test the query key hierarchy and the preload bridge call beside the query file. Hook and component tests should use Testing Library with a fresh `QueryClient` per test from `src/renderer/src/test/render.tsx`.
+For TkDodo-style Query Factories, test the query key hierarchy and the preload bridge call beside the query file. Main-process services, such as settings and theme behavior, should keep focused service tests near their implementation. Hook and component tests should use Testing Library with a fresh `QueryClient` per test from `src/renderer/src/test/render.tsx`.
 
 ---
 
 ## 📅 Roadmap
 
-- [x] Electron + React 19 + TypeScript base split
-- [x] Biome rapid code styling lint & format setup
-- [x] Fully integrated Husky, lint-staged, and commitlint commit guardrails
-- [x] GitHub Actions CI automated pipeline setup
-- [x] Responsive layout shell using shadcn/ui components
-- [x] File-based routing via TanStack Router
-- [x] TkDodo modular Query Factory pattern with TanStack Query
-- [x] Establish Vitest + Testing Library unit test suite
-- [x] Implement typed electron-store user settings persistence
-- [x] Add theme switcher with persisted light/dark/system preference
-- [ ] Add SafeStorage-backed secret persistence
-- [ ] Unified desktop application updater integration and configuration
+The roadmap is ordered so each milestone builds on the previous one. Each item should stay small enough to complete, test, and review as its own focused branch.
+
+### Phase 1: Electron Security Foundation
+
+- [ ] **Harden `BrowserWindow` security**: Explicitly configure secure defaults such as `contextIsolation`, `nodeIntegration`, `sandbox`, `webSecurity`, preload location, and production-safe DevTools behavior.
+- [ ] **Create a centralized window/security module**: Move secure window defaults, URL checks, and shared browser policies out of `src/main/index.ts` so every future window starts from the same baseline.
+- [ ] **Add a navigation allowlist**: Block unexpected top-level navigation and validate any URL passed to `shell.openExternal`.
+- [ ] **Add a permission request handler with UI**: Deny permissions by default, model allowed permissions explicitly, and provide renderer UI for supported prompts such as notifications.
+
+### Phase 2: Safe Platform APIs
+
+- [ ] **Add a typed IPC contract helper**: Create a small pattern for channel names, Zod request validation, typed responses, and consistent error serialization.
+- [ ] **Add SafeStorage-backed secrets**: Store tokens, API keys, and other sensitive values through Electron `safeStorage`, separate from normal `electron-store` preferences.
+- [ ] **Add file picker/save dialog APIs**: Expose typed main-process wrappers for open/save dialogs through preload and document the recommended renderer usage.
+- [ ] **Add native notifications module**: Provide a typed notification API with permission-aware renderer hooks.
+
+### Phase 3: Auth Foundation
+
+Add auth after the security and platform API foundations are in place. Auth should reuse the typed IPC helper and SafeStorage-backed persistence rather than introducing its own storage path.
+
+- [ ] **Add shared auth types**: Define session, user, sign-in, and sign-out contracts that can be imported by main, preload, and renderer code.
+- [ ] **Add `FakeAuthProvider` in main**: Use `safeStorage` for sensitive session material and `electron-store` for non-sensitive auth metadata.
+- [ ] **Add auth IPC handlers**: Register typed handlers for reading the current session, signing in, and signing out.
+- [ ] **Expose `window.api.auth`**: Keep renderer auth access behind preload, matching the rest of the app API.
+- [ ] **Add renderer auth modules**: Create `auth.client.ts`, `auth.queries.ts`, and `auth.hooks.ts`.
+- [ ] **Split routes into auth and app groups**: Move current routes into `(auth)` and `(app)` route groups.
+- [ ] **Add protected app layout**: Add an `(app)/route.tsx` layout guard that redirects unauthenticated users to `/login`.
+- [ ] **Add a simple login screen**: Call fake `signIn` and hydrate the session query on success.
+- [ ] **Add sign out**: Clear the session query and navigate back to `/login`.
+
+Key design rule: file-based routing owns access control, TanStack Query owns session state, and the main-process auth provider owns persistence. That keeps fake auth realistic without making it hard to replace later.
+
+### Phase 4: Reliability and Observability
+
+- [ ] **Add window state persistence**: Restore, validate, and save window bounds while preventing off-screen launches.
+- [ ] **Add error boundary and crash handling**: Provide renderer error boundaries, main-process uncaught error handling, and renderer crash/reload behavior.
+- [ ] **Add `electron-log`**: Centralize app logs for main, preload, and renderer paths with production-friendly file output.
+
+### Phase 5: Distribution and Configuration
+
+- [ ] **Add typed env config with `import.meta.env`**: Provide `.env.example`, typed renderer env variables, and clear separation between build-time renderer config and main-process secrets.
+- [ ] **Add the auto update flow**: Implement `electron-updater` service, IPC events, renderer update UI, progress states, and production publish configuration.
