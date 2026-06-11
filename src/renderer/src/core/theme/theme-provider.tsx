@@ -1,7 +1,6 @@
 import {
 	createContext,
 	type ReactNode,
-	useCallback,
 	useContext,
 	useEffect,
 	useMemo,
@@ -25,11 +24,8 @@ const ThemeContext = createContext<ThemeProviderValue | undefined>(undefined);
 export function ThemeProvider({ children }: { children: ReactNode }) {
 	const themeQuery = useTheme();
 	const setThemePreference = useSetThemePreference();
-	const applyUpdatedTheme = useCallback((themeState: ThemeState) => {
-		applyThemeClass(themeState.resolvedTheme);
-	}, []);
 
-	useThemeUpdatedListener(applyUpdatedTheme);
+	useThemeUpdatedListener();
 
 	useEffect(() => {
 		if (themeQuery.data) {
