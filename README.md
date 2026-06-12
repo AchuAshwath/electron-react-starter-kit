@@ -300,9 +300,8 @@ The roadmap is ordered so each milestone builds on the previous one. Each item s
 
 ### Phase 1: Electron Security Foundation
 
-- [ ] **Harden `BrowserWindow` security**: Explicitly configure secure defaults such as `contextIsolation`, `nodeIntegration`, `sandbox`, `webSecurity`, preload location, and production-safe DevTools behavior.
+- [x] **Harden `BrowserWindow` security**: Explicitly configure secure defaults such as `contextIsolation`, `nodeIntegration`, `sandbox`, `webSecurity`, preload location, and production-safe DevTools behavior.
   Progress so far: context isolation is required, renderer Node integration is disabled, renderer sandboxing is enabled, `webSecurity` is explicit, `allowRunningInsecureContent` is disabled, broad `window.electron` access is removed, and dev `loadURL` is restricted to local Vite loopback URLs.
-  Remaining: review CSP, explicitly avoid experimental browser features, and decide how strict production DevTools behavior should be for the starter.
 - [ ] **Create a centralized window/security module**: Move secure window defaults, URL checks, permission policy, and shared browser policies out of `src/main/index.ts` once the policies grow beyond simple inline configuration.
 - [ ] **Add a navigation allowlist**: Block unexpected top-level navigation and validate any URL passed to `shell.openExternal`.
 - [ ] **Limit creation of new windows**: Keep `setWindowOpenHandler` deny-by-default, then allow only validated external destinations when needed.

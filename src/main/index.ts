@@ -38,6 +38,10 @@ function createWindow(): void {
 		mainWindow.show();
 	});
 
+	mainWindow.webContents.on("will-navigate", (event) => {
+		event.preventDefault();
+	});
+
 	mainWindow.webContents.setWindowOpenHandler((details) => {
 		shell.openExternal(details.url);
 		return { action: "deny" };
