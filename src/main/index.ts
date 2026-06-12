@@ -41,6 +41,13 @@ function createWindow(): void {
 	if (is.dev && process.env.ELECTRON_RENDERER_URL) {
 		const rendererUrl = new URL(process.env.ELECTRON_RENDERER_URL);
 
+		if (
+			rendererUrl.protocol !== "http:" ||
+			!["localhost", "127.0.0.1", "[::1]"].includes(rendererUrl.hostname)
+		) {
+			throw new Error("Dev renderer URL must use HTTP on a loopback host.");
+		}
+
 		for (const [key, value] of initialThemeSearch) {
 			rendererUrl.searchParams.set(key, value);
 		}
