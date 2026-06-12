@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { electronApp, is, optimizer } from "@electron-toolkit/utils";
-import { app, BrowserWindow, ipcMain, shell } from "electron";
+import { app, BrowserWindow, ipcMain, session, shell } from "electron";
 import icon from "../../resources/icon.png?asset";
 import { registerSettingsIpcHandlers } from "./settings/settings.ipc";
 import { registerThemeIpcHandlers } from "./theme/theme.ipc";
@@ -64,6 +64,14 @@ function createWindow(): void {
 	}
 }
 
+function registerPermissionRequestHandler(): void {
+	session.defaultSession.setPermissionRequestHandler(
+		(_webContents, _permission, callback) => {
+			callback(false);
+		},
+	);
+}
+
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
@@ -77,6 +85,8 @@ app.whenReady().then(() => {
 	app.on("browser-window-created", (_, window) => {
 		optimizer.watchWindowShortcuts(window);
 	});
+
+	registerPermissionRequestHandler();
 
 	// IPC handlers — two-way request/response (used with ipcRenderer.invoke + TanStack Query)
 	ipcMain.handle("get-app-version", () => {
