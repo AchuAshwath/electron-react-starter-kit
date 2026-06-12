@@ -27,7 +27,7 @@ function createWindow(): void {
 			nodeIntegration: false,
 			nodeIntegrationInWorker: false,
 			nodeIntegrationInSubFrames: false,
-			sandbox: false,
+			sandbox: true,
 		},
 	});
 
