@@ -28,6 +28,8 @@ function createWindow(): void {
 			nodeIntegrationInWorker: false,
 			nodeIntegrationInSubFrames: false,
 			sandbox: true,
+			webSecurity: true,
+			allowRunningInsecureContent: false,
 		},
 	});
 
