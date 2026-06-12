@@ -1,20 +1,16 @@
 import { join } from "node:path";
 import { electronApp, is, optimizer } from "@electron-toolkit/utils";
-import { app, BrowserWindow, ipcMain, session, shell } from "electron";
+import { app, BrowserWindow, ipcMain } from "electron";
 import icon from "../../resources/icon.png?asset";
+import {
+	getSecureWebPreferences,
+	isAllowedDevRendererUrl,
+	registerNavigationHandlers,
+	registerPermissionRequestHandler,
+} from "./security";
 import { registerSettingsIpcHandlers } from "./settings/settings.ipc";
 import { registerThemeIpcHandlers } from "./theme/theme.ipc";
 import { syncNativeThemeFromSettings } from "./theme/theme.service";
-
-const allowedExternalProtocols = new Set(["https:", "mailto:"]);
-
-function isAllowedExternalUrl(url: string): boolean {
-	try {
-		return allowedExternalProtocols.has(new URL(url).protocol);
-	} catch {
-		return false;
-	}
-}
 
 function createWindow(): void {
 	const initialThemeState = syncNativeThemeFromSettings();
@@ -31,44 +27,23 @@ function createWindow(): void {
 		show: false,
 		autoHideMenuBar: true,
 		...(process.platform === "linux" ? { icon } : {}),
-		webPreferences: {
-			preload: join(__dirname, "../preload/index.js"),
-			contextIsolation: true,
-			nodeIntegration: false,
-			nodeIntegrationInWorker: false,
-			nodeIntegrationInSubFrames: false,
-			sandbox: true,
-			webSecurity: true,
-			allowRunningInsecureContent: false,
-			experimentalFeatures: false,
-		},
+		webPreferences: getSecureWebPreferences(
+			join(__dirname, "../preload/index.js"),
+		),
 	});
 
 	mainWindow.on("ready-to-show", () => {
 		mainWindow.show();
 	});
 
-	mainWindow.webContents.on("will-navigate", (event) => {
-		event.preventDefault();
-	});
-
-	mainWindow.webContents.setWindowOpenHandler((details) => {
-		if (isAllowedExternalUrl(details.url)) {
-			shell.openExternal(details.url);
-		}
-
-		return { action: "deny" };
-	});
+	registerNavigationHandlers(mainWindow);
 
 	// HMR for renderer base on electron-vite cli.
 	// Load the remote URL for development or the local html file for production.
 	if (is.dev && process.env.ELECTRON_RENDERER_URL) {
 		const rendererUrl = new URL(process.env.ELECTRON_RENDERER_URL);
 
-		if (
-			rendererUrl.protocol !== "http:" ||
-			!["localhost", "127.0.0.1", "[::1]"].includes(rendererUrl.hostname)
-		) {
+		if (!isAllowedDevRendererUrl(rendererUrl)) {
 			throw new Error("Dev renderer URL must use HTTP on a loopback host.");
 		}
 
@@ -82,14 +57,6 @@ function createWindow(): void {
 			query: Object.fromEntries(initialThemeSearch),
 		});
 	}
-}
-
-function registerPermissionRequestHandler(): void {
-	session.defaultSession.setPermissionRequestHandler(
-		(_webContents, _permission, callback) => {
-			callback(false);
-		},
-	);
 }
 
 // This method will be called when Electron has finished
