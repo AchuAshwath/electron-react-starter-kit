@@ -6,6 +6,16 @@ import { registerSettingsIpcHandlers } from "./settings/settings.ipc";
 import { registerThemeIpcHandlers } from "./theme/theme.ipc";
 import { syncNativeThemeFromSettings } from "./theme/theme.service";
 
+const allowedExternalProtocols = new Set(["https:", "mailto:"]);
+
+function isAllowedExternalUrl(url: string): boolean {
+	try {
+		return allowedExternalProtocols.has(new URL(url).protocol);
+	} catch {
+		return false;
+	}
+}
+
 function createWindow(): void {
 	const initialThemeState = syncNativeThemeFromSettings();
 	const initialThemeSearch = new URLSearchParams({
@@ -43,7 +53,10 @@ function createWindow(): void {
 	});
 
 	mainWindow.webContents.setWindowOpenHandler((details) => {
-		shell.openExternal(details.url);
+		if (isAllowedExternalUrl(details.url)) {
+			shell.openExternal(details.url);
+		}
+
 		return { action: "deny" };
 	});
 
