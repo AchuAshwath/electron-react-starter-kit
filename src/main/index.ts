@@ -1,7 +1,13 @@
 import { join } from "node:path";
 import { electronApp, is, optimizer } from "@electron-toolkit/utils";
-import { app, BrowserWindow, ipcMain, shell } from "electron";
+import { app, BrowserWindow, ipcMain } from "electron";
 import icon from "../../resources/icon.png?asset";
+import {
+	getSecureWebPreferences,
+	isAllowedDevRendererUrl,
+	registerNavigationHandlers,
+	registerPermissionRequestHandler,
+} from "./security";
 import { registerSettingsIpcHandlers } from "./settings/settings.ipc";
 import { registerThemeIpcHandlers } from "./theme/theme.ipc";
 import { syncNativeThemeFromSettings } from "./theme/theme.service";
@@ -21,25 +27,25 @@ function createWindow(): void {
 		show: false,
 		autoHideMenuBar: true,
 		...(process.platform === "linux" ? { icon } : {}),
-		webPreferences: {
-			preload: join(__dirname, "../preload/index.js"),
-			sandbox: false,
-		},
+		webPreferences: getSecureWebPreferences(
+			join(__dirname, "../preload/index.js"),
+		),
 	});
 
 	mainWindow.on("ready-to-show", () => {
 		mainWindow.show();
 	});
 
-	mainWindow.webContents.setWindowOpenHandler((details) => {
-		shell.openExternal(details.url);
-		return { action: "deny" };
-	});
+	registerNavigationHandlers(mainWindow);
 
 	// HMR for renderer base on electron-vite cli.
 	// Load the remote URL for development or the local html file for production.
 	if (is.dev && process.env.ELECTRON_RENDERER_URL) {
 		const rendererUrl = new URL(process.env.ELECTRON_RENDERER_URL);
+
+		if (!isAllowedDevRendererUrl(rendererUrl)) {
+			throw new Error("Dev renderer URL must use HTTP on a loopback host.");
+		}
 
 		for (const [key, value] of initialThemeSearch) {
 			rendererUrl.searchParams.set(key, value);
@@ -67,8 +73,7 @@ app.whenReady().then(() => {
 		optimizer.watchWindowShortcuts(window);
 	});
 
-	// IPC test (fire-and-forget)
-	ipcMain.on("ping", () => console.log("pong"));
+	registerPermissionRequestHandler();
 
 	// IPC handlers — two-way request/response (used with ipcRenderer.invoke + TanStack Query)
 	ipcMain.handle("get-app-version", () => {

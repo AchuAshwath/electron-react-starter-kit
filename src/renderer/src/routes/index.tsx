@@ -82,8 +82,6 @@ function InfoRow({
 }
 
 function TemplateLandingRoute(): React.JSX.Element {
-	const ipcHandle = (): void => window.electron.ipcRenderer.send("ping");
-
 	return (
 		<div className="mx-auto flex max-w-2xl flex-col items-center gap-8 px-6 py-10 text-center">
 			<Card className="w-full">
@@ -110,9 +108,6 @@ function TemplateLandingRoute(): React.JSX.Element {
 						>
 							<Button variant="secondary">Documentation</Button>
 						</a>
-						<Button type="button" onClick={ipcHandle}>
-							Send IPC
-						</Button>
 					</div>
 
 					<Versions />

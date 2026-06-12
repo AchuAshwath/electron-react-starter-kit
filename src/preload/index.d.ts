@@ -1,4 +1,3 @@
-import { ElectronAPI } from "@electron-toolkit/preload";
 import type {
 	UserSettings,
 	UserSettingsPatch,
@@ -7,7 +6,6 @@ import type { ThemeState } from "../main/theme/theme.types.ts";
 
 declare global {
 	interface Window {
-		electron: ElectronAPI;
 		api: {
 			/** Fetch the Electron app version from the main process */
 			getAppVersion: () => Promise<string>;
