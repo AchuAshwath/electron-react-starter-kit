@@ -78,9 +78,6 @@ app.whenReady().then(() => {
 		optimizer.watchWindowShortcuts(window);
 	});
 
-	// IPC test (fire-and-forget)
-	ipcMain.on("ping", () => console.log("pong"));
-
 	// IPC handlers — two-way request/response (used with ipcRenderer.invoke + TanStack Query)
 	ipcMain.handle("get-app-version", () => {
 		return app.getVersion();
