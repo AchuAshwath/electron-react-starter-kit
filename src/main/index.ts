@@ -3,6 +3,7 @@ import { electronApp, is, optimizer } from "@electron-toolkit/utils";
 import { app, BrowserWindow, ipcMain } from "electron";
 import icon from "../../resources/icon.png?asset";
 import {
+	assertTrustedIpcSender,
 	getSecureWebPreferences,
 	isAllowedDevRendererUrl,
 	registerNavigationHandlers,
@@ -76,11 +77,15 @@ app.whenReady().then(() => {
 	registerPermissionRequestHandler();
 
 	// IPC handlers — two-way request/response (used with ipcRenderer.invoke + TanStack Query)
-	ipcMain.handle("get-app-version", () => {
+	ipcMain.handle("get-app-version", (event) => {
+		assertTrustedIpcSender(event, { isDev: is.dev });
+
 		return app.getVersion();
 	});
 
-	ipcMain.handle("get-system-info", () => {
+	ipcMain.handle("get-system-info", (event) => {
+		assertTrustedIpcSender(event, { isDev: is.dev });
+
 		return {
 			platform: process.platform,
 			arch: process.arch,
