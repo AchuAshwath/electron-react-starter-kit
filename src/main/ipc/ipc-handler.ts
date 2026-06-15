@@ -42,7 +42,8 @@ export class IpcHandlerError extends Error {
 		public readonly code: IpcHandlerErrorCode,
 		message: string,
 	) {
-		super(message);
+		// Electron only forwards Error.message to ipcRenderer.invoke callers.
+		super(`${code}: ${message}`);
 		this.name = "IpcHandlerError";
 	}
 }

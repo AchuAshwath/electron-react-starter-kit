@@ -80,7 +80,7 @@ describe("createIpcHandlerRegistrar", () => {
 			} as never),
 		).rejects.toMatchObject({
 			code: ipcHandlerErrorCodes.untrustedSender,
-			message: "Blocked IPC call from an untrusted sender.",
+			message: `${ipcHandlerErrorCodes.untrustedSender}: Blocked IPC call from an untrusted sender.`,
 		});
 		expect(handler).not.toHaveBeenCalled();
 	});
@@ -126,7 +126,7 @@ describe("createIpcHandlerRegistrar", () => {
 			),
 		).rejects.toMatchObject({
 			code: ipcHandlerErrorCodes.badRequest,
-			message: "Invalid IPC request payload.",
+			message: `${ipcHandlerErrorCodes.badRequest}: Invalid IPC request payload.`,
 		});
 		expect(handler).not.toHaveBeenCalled();
 	});
@@ -147,7 +147,7 @@ describe("createIpcHandlerRegistrar", () => {
 			} as never),
 		).rejects.toMatchObject({
 			code: ipcHandlerErrorCodes.internalError,
-			message: "IPC handler failed.",
+			message: `${ipcHandlerErrorCodes.internalError}: IPC handler failed.`,
 		});
 	});
 
@@ -170,7 +170,7 @@ describe("createIpcHandlerRegistrar", () => {
 			} as never),
 		).rejects.toMatchObject({
 			code: ipcHandlerErrorCodes.badRequest,
-			message: "Custom sanitized message.",
+			message: `${ipcHandlerErrorCodes.badRequest}: Custom sanitized message.`,
 		});
 	});
 
