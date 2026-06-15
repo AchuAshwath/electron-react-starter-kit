@@ -1,18 +1,18 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { InfoIcon, MonitorIcon, ZapIcon } from "lucide-react";
-import electronLogo from "../assets/electron.svg";
-import { Alert, AlertDescription } from "../components/ui/alert";
-import { Button } from "../components/ui/button";
+import electronLogo from "../../assets/electron.svg";
+import { Alert, AlertDescription } from "../../components/ui/alert";
+import { Button } from "../../components/ui/button";
 import {
 	Card,
 	CardContent,
 	CardHeader,
 	CardTitle,
-} from "../components/ui/card";
-import Versions from "../components/Versions";
-import { useAppVersion, useSystemInfo } from "../core/system/system.hooks";
+} from "../../components/ui/card";
+import Versions from "../../components/Versions";
+import { useAppVersion, useSystemInfo } from "../../core/system/system.hooks";
 
-export const Route = createFileRoute("/")({
+export const Route = createFileRoute("/(app)/")({
 	component: TemplateLandingRoute,
 });
 
@@ -36,7 +36,7 @@ function SystemInfoCard(): React.JSX.Element {
 					label="App Version"
 					value={
 						versionQuery.isPending
-							? "Loading…"
+							? "Loading..."
 							: versionQuery.isError
 								? "Error"
 								: `v${versionQuery.data}`
@@ -56,7 +56,7 @@ function SystemInfoCard(): React.JSX.Element {
 				)}
 				{systemQuery.isPending && (
 					<p className="col-span-full text-xs text-muted-foreground">
-						Loading system info…
+						Loading system info...
 					</p>
 				)}
 			</CardContent>
@@ -125,7 +125,6 @@ function TemplateLandingRoute(): React.JSX.Element {
 				</CardContent>
 			</Card>
 
-			{/* TanStack Query + IPC demo */}
 			<div className="flex w-full flex-col gap-2">
 				<div className="flex items-center gap-2 text-left">
 					<ZapIcon className="h-4 w-4 text-muted-foreground" />
