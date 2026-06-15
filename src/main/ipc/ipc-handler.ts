@@ -1,5 +1,6 @@
 import type { IpcMainInvokeEvent } from "electron";
-import type { z } from "zod";
+import { z } from "zod";
+import { UntrustedIpcSenderError } from "../security";
 
 type IpcMainLike = {
 	handle: (
@@ -27,6 +28,50 @@ type IpcHandlerRegistrarOptions = {
 	) => void;
 };
 
+export const ipcHandlerErrorCodes = {
+	badRequest: "BAD_REQUEST",
+	internalError: "INTERNAL_ERROR",
+	untrustedSender: "UNTRUSTED_SENDER",
+} as const;
+
+export type IpcHandlerErrorCode =
+	(typeof ipcHandlerErrorCodes)[keyof typeof ipcHandlerErrorCodes];
+
+export class IpcHandlerError extends Error {
+	constructor(
+		public readonly code: IpcHandlerErrorCode,
+		message: string,
+	) {
+		super(message);
+		this.name = "IpcHandlerError";
+	}
+}
+
+function sanitizeIpcError(error: unknown): IpcHandlerError {
+	if (error instanceof IpcHandlerError) {
+		return error;
+	}
+
+	if (error instanceof UntrustedIpcSenderError) {
+		return new IpcHandlerError(
+			ipcHandlerErrorCodes.untrustedSender,
+			"Blocked IPC call from an untrusted sender.",
+		);
+	}
+
+	if (error instanceof z.ZodError) {
+		return new IpcHandlerError(
+			ipcHandlerErrorCodes.badRequest,
+			"Invalid IPC request payload.",
+		);
+	}
+
+	return new IpcHandlerError(
+		ipcHandlerErrorCodes.internalError,
+		"IPC handler failed.",
+	);
+}
+
 export function createIpcHandlerRegistrar({
 	ipcMain,
 	isDev,
@@ -38,11 +83,15 @@ export function createIpcHandlerRegistrar({
 		handler,
 	}: RegisterIpcHandlerOptions<TInput, TOutput>): void {
 		ipcMain.handle(channel, async (event, payload: unknown) => {
-			assertTrustedSender(event, { isDev });
+			try {
+				assertTrustedSender(event, { isDev });
 
-			const parsedInput = input ? input.parse(payload) : undefined;
+				const parsedInput = input ? input.parse(payload) : undefined;
 
-			return handler(parsedInput as TInput, event);
+				return await handler(parsedInput as TInput, event);
+			} catch (error) {
+				throw sanitizeIpcError(error);
+			}
 		});
 	};
 }

@@ -1,6 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { createIpcHandlerRegistrar } from "./ipc-handler";
+import { UntrustedIpcSenderError } from "../security";
+import {
+	createIpcHandlerRegistrar,
+	IpcHandlerError,
+	ipcHandlerErrorCodes,
+} from "./ipc-handler";
 
 function createTestRegistrar() {
 	const handlers = new Map<string, (...args: never[]) => unknown>();
@@ -60,9 +65,8 @@ describe("createIpcHandlerRegistrar", () => {
 		const { assertTrustedSender, handlers, registerIpcHandler } =
 			createTestRegistrar();
 		const handler = vi.fn();
-		const error = new Error("untrusted");
 		assertTrustedSender.mockImplementation(() => {
-			throw error;
+			throw new UntrustedIpcSenderError("https://example.com");
 		});
 
 		registerIpcHandler({
@@ -74,7 +78,10 @@ describe("createIpcHandlerRegistrar", () => {
 			handlers.get("system:get-version")?.({
 				senderFrame: { url: "https://example.com" },
 			} as never),
-		).rejects.toThrow(error);
+		).rejects.toMatchObject({
+			code: ipcHandlerErrorCodes.untrustedSender,
+			message: "Blocked IPC call from an untrusted sender.",
+		});
 		expect(handler).not.toHaveBeenCalled();
 	});
 
@@ -117,8 +124,54 @@ describe("createIpcHandlerRegistrar", () => {
 				{ senderFrame: { url: "http://localhost:5173" } } as never,
 				{ theme: "system" } as never,
 			),
-		).rejects.toThrow(z.ZodError);
+		).rejects.toMatchObject({
+			code: ipcHandlerErrorCodes.badRequest,
+			message: "Invalid IPC request payload.",
+		});
 		expect(handler).not.toHaveBeenCalled();
+	});
+
+	it("sanitizes unknown handler errors", async () => {
+		const { handlers, registerIpcHandler } = createTestRegistrar();
+
+		registerIpcHandler({
+			channel: "system:get-version",
+			handler: () => {
+				throw new Error("database password leaked");
+			},
+		});
+
+		await expect(
+			handlers.get("system:get-version")?.({
+				senderFrame: { url: "http://localhost:5173" },
+			} as never),
+		).rejects.toMatchObject({
+			code: ipcHandlerErrorCodes.internalError,
+			message: "IPC handler failed.",
+		});
+	});
+
+	it("passes through already-sanitized ipc handler errors", async () => {
+		const { handlers, registerIpcHandler } = createTestRegistrar();
+
+		registerIpcHandler({
+			channel: "system:get-version",
+			handler: () => {
+				throw new IpcHandlerError(
+					ipcHandlerErrorCodes.badRequest,
+					"Custom sanitized message.",
+				);
+			},
+		});
+
+		await expect(
+			handlers.get("system:get-version")?.({
+				senderFrame: { url: "http://localhost:5173" },
+			} as never),
+		).rejects.toMatchObject({
+			code: ipcHandlerErrorCodes.badRequest,
+			message: "Custom sanitized message.",
+		});
 	});
 
 	it("supports async handlers", async () => {
