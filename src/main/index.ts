@@ -10,11 +10,16 @@ import {
 	registerNavigationHandlers,
 	registerPermissionRequestHandler,
 } from "./security";
-import { registerSettingsIpcHandlers } from "./settings/settings.ipc";
+import {
+	broadcastSettings,
+	registerSettingsIpcHandlers,
+} from "./settings/settings.ipc";
+import { getSettings, updateSettings } from "./settings/settings.store";
 import { registerThemeIpcHandlers } from "./theme/theme.ipc";
 import { syncNativeThemeFromSettings } from "./theme/theme.service";
 
 function createWindow(): void {
+	const settings = getSettings();
 	const initialThemeState = syncNativeThemeFromSettings();
 	const initialThemeSearch = new URLSearchParams({
 		themePreference: initialThemeState.preference,
@@ -24,8 +29,8 @@ function createWindow(): void {
 
 	// Create the browser window.
 	const mainWindow = new BrowserWindow({
-		width: 900,
-		height: 670,
+		width: settings.windowBounds.width,
+		height: settings.windowBounds.height,
 		show: false,
 		autoHideMenuBar: true,
 		...(process.platform === "linux" ? { icon } : {}),
@@ -39,6 +44,7 @@ function createWindow(): void {
 	});
 
 	registerNavigationHandlers(mainWindow);
+	registerWindowBoundsPersistence(mainWindow);
 
 	// HMR for renderer base on electron-vite cli.
 	// Load the remote URL for development or the local html file for production.
@@ -59,6 +65,28 @@ function createWindow(): void {
 			query: Object.fromEntries(initialThemeSearch),
 		});
 	}
+}
+
+function registerWindowBoundsPersistence(window: BrowserWindow): void {
+	let saveWindowBoundsTimer: ReturnType<typeof setTimeout> | undefined;
+
+	window.on("resize", () => {
+		if (saveWindowBoundsTimer) {
+			clearTimeout(saveWindowBoundsTimer);
+		}
+
+		saveWindowBoundsTimer = setTimeout(() => {
+			const [width, height] = window.getSize();
+			const settings = updateSettings({
+				windowBounds: {
+					width,
+					height,
+				},
+			});
+
+			broadcastSettings(settings);
+		}, 250);
+	});
 }
 
 // This method will be called when Electron has finished
