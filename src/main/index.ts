@@ -2,6 +2,7 @@ import { join } from "node:path";
 import { electronApp, is, optimizer } from "@electron-toolkit/utils";
 import { app, BrowserWindow, ipcMain } from "electron";
 import icon from "../../resources/icon.png?asset";
+import { createIpcHandlerRegistrar } from "./ipc/ipc-handler";
 import {
 	assertTrustedIpcSender,
 	getSecureWebPreferences,
@@ -75,28 +76,35 @@ app.whenReady().then(() => {
 	});
 
 	registerPermissionRequestHandler();
+	const registerIpcHandler = createIpcHandlerRegistrar({
+		ipcMain,
+		isDev: is.dev,
+		assertTrustedSender: assertTrustedIpcSender,
+	});
 
 	// IPC handlers — two-way request/response (used with ipcRenderer.invoke + TanStack Query)
-	ipcMain.handle("get-app-version", (event) => {
-		assertTrustedIpcSender(event, { isDev: is.dev });
-
-		return app.getVersion();
+	registerIpcHandler({
+		channel: "get-app-version",
+		handler: () => {
+			return app.getVersion();
+		},
 	});
 
-	ipcMain.handle("get-system-info", (event) => {
-		assertTrustedIpcSender(event, { isDev: is.dev });
-
-		return {
-			platform: process.platform,
-			arch: process.arch,
-			nodeVersion: process.versions.node,
-			chromeVersion: process.versions.chrome,
-			electronVersion: process.versions.electron,
-		};
+	registerIpcHandler({
+		channel: "get-system-info",
+		handler: () => {
+			return {
+				platform: process.platform,
+				arch: process.arch,
+				nodeVersion: process.versions.node,
+				chromeVersion: process.versions.chrome,
+				electronVersion: process.versions.electron,
+			};
+		},
 	});
 
-	registerSettingsIpcHandlers();
-	registerThemeIpcHandlers();
+	registerSettingsIpcHandlers(registerIpcHandler);
+	registerThemeIpcHandlers(registerIpcHandler);
 
 	createWindow();
 

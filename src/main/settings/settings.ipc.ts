@@ -1,4 +1,4 @@
-import { ipcMain } from "electron";
+import type { IpcHandlerRegistrar } from "../ipc/ipc-handler";
 import {
 	applyThemePreference,
 	broadcastThemeState,
@@ -12,29 +12,40 @@ export const settingsIpcChannels = {
 	reset: "settings:reset",
 } as const;
 
-export function registerSettingsIpcHandlers(): void {
-	ipcMain.handle(settingsIpcChannels.get, () => {
-		return getSettings();
+export function registerSettingsIpcHandlers(
+	registerIpcHandler: IpcHandlerRegistrar,
+): void {
+	registerIpcHandler({
+		channel: settingsIpcChannels.get,
+		handler: () => {
+			return getSettings();
+		},
 	});
 
-	ipcMain.handle(settingsIpcChannels.update, (_, patch: unknown) => {
-		const parsedPatch = userSettingsPatchSchema.parse(patch);
-		const settings = updateSettings(parsedPatch);
+	registerIpcHandler({
+		channel: settingsIpcChannels.update,
+		input: userSettingsPatchSchema,
+		handler: (parsedPatch) => {
+			const settings = updateSettings(parsedPatch);
 
-		if (parsedPatch.theme) {
-			applyThemePreference(parsedPatch.theme);
+			if (parsedPatch.theme) {
+				applyThemePreference(parsedPatch.theme);
+				broadcastThemeState();
+			}
+
+			return settings;
+		},
+	});
+
+	registerIpcHandler({
+		channel: settingsIpcChannels.reset,
+		handler: () => {
+			const settings = resetSettings();
+
+			applyThemePreference(settings.theme);
 			broadcastThemeState();
-		}
 
-		return settings;
-	});
-
-	ipcMain.handle(settingsIpcChannels.reset, () => {
-		const settings = resetSettings();
-
-		applyThemePreference(settings.theme);
-		broadcastThemeState();
-
-		return settings;
+			return settings;
+		},
 	});
 }

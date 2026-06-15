@@ -46,3 +46,5 @@ export function createIpcHandlerRegistrar({
 		});
 	};
 }
+
+export type IpcHandlerRegistrar = ReturnType<typeof createIpcHandlerRegistrar>;

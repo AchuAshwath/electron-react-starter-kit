@@ -1,4 +1,5 @@
-import { ipcMain, nativeTheme } from "electron";
+import { nativeTheme } from "electron";
+import type { IpcHandlerRegistrar } from "../ipc/ipc-handler";
 import { themePreferenceSchema } from "../settings/settings.types";
 import {
 	broadcastThemeState,
@@ -12,15 +13,22 @@ export const themeIpcChannels = {
 	updated: "theme:updated",
 } as const;
 
-export function registerThemeIpcHandlers(): void {
-	ipcMain.handle(themeIpcChannels.get, () => {
-		return getThemeState();
+export function registerThemeIpcHandlers(
+	registerIpcHandler: IpcHandlerRegistrar,
+): void {
+	registerIpcHandler({
+		channel: themeIpcChannels.get,
+		handler: () => {
+			return getThemeState();
+		},
 	});
 
-	ipcMain.handle(themeIpcChannels.setPreference, (_, preference: unknown) => {
-		const parsedPreference = themePreferenceSchema.parse(preference);
-
-		return setThemePreference(parsedPreference);
+	registerIpcHandler({
+		channel: themeIpcChannels.setPreference,
+		input: themePreferenceSchema,
+		handler: (preference) => {
+			return setThemePreference(preference);
+		},
 	});
 
 	nativeTheme.on("updated", () => {
