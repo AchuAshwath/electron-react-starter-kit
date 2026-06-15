@@ -61,6 +61,7 @@ Discover the core stack driving this starter template:
 ├── src/
 │   ├── main/
 │   │   ├── index.ts             # Electron lifecycle, BrowserWindow, and IPC registration
+│   │   ├── ipc/                 # Typed IPC handler registrar, validation, and safe errors
 │   │   ├── settings/            # Zod-validated electron-store settings module
 │   │   └── theme/               # nativeTheme integration and theme IPC handlers
 │   ├── preload/
@@ -117,7 +118,9 @@ You need [Node.js](https://nodejs.org/) (v22 or newer) and [pnpm](https://pnpm.i
 
 ## 🔄 IPC & Querying Architecture
 
-This starter kit implements the **TkDodo Query Factory pattern** for seamless and type-safe main-to-renderer communication. The current preload API exposes app version, system info, settings, and theme capabilities through `window.api`, while the renderer consumes those APIs through feature-specific query factories and hooks.
+This starter kit implements a typed IPC platform around Electron's `ipcMain.handle` / `ipcRenderer.invoke` flow and the **TkDodo Query Factory pattern**. The current preload API exposes app version, system info, settings, and theme capabilities through `window.api`, while the renderer consumes those APIs through feature-specific query factories and hooks.
+
+Main-process handlers are registered through `createIpcHandlerRegistrar`, which applies trusted sender validation before handler execution, validates request payloads with Zod when a schema is provided, and converts thrown errors into renderer-safe messages such as `BAD_REQUEST: Invalid IPC request payload.`. Renderer code should treat the rejected error `message` as the stable error contract because Electron does not preserve custom error fields across `ipcRenderer.invoke`.
 
 ```mermaid
 sequenceDiagram
@@ -139,24 +142,48 @@ sequenceDiagram
 
 ### Adding a New IPC Route & Query
 
-1. **Register the IPC handler in the main process:**
+1. **Register the IPC handler with the typed main-process registrar:**
    ```typescript
-   ipcMain.handle("get-custom-data", async (_, args) => {
-       return { success: true, data: "Hello World" };
+   import { z } from "zod";
+   import type { IpcHandlerRegistrar } from "../ipc/ipc-handler";
+
+   const customRequestSchema = z.object({
+       id: z.string().min(1),
    });
+
+   export function registerCustomIpcHandlers(
+       registerIpcHandler: IpcHandlerRegistrar,
+   ): void {
+       registerIpcHandler({
+           channel: "custom:get",
+           input: customRequestSchema,
+           handler: (input) => {
+               return { success: true, id: input.id };
+           },
+       });
+   }
+   ```
+
+   Wire the feature registrar from `src/main/index.ts`:
+   ```typescript
+   registerCustomIpcHandlers(registerIpcHandler);
    ```
 
 2. **Add preload bridge in `src/preload/index.ts` & `index.d.ts`:**
    ```typescript
    // index.ts
    const api = {
-       getCustomData: () => ipcRenderer.invoke("get-custom-data"),
+       custom: {
+           get: (id: string) => ipcRenderer.invoke("custom:get", { id }),
+       },
    };
    
    // index.d.ts
    interface Window {
        api: {
-           getCustomData: () => Promise<{ success: boolean; data: string }>;
+           custom: {
+               get: (id: string) => Promise<{ success: boolean; id: string }>;
+           };
        };
    }
    ```
@@ -165,12 +192,12 @@ sequenceDiagram
    ```typescript
    export const systemQueries = {
        // ...
-       customData: () =>
+       customData: (id: string) =>
            queryOptions({
-               queryKey: [...systemQueries.all(), "custom"],
-               queryFn: () => window.api.getCustomData(),
-                staleTime: 60 * 1000, // cache fresh for 1 minute
-            }),
+               queryKey: [...systemQueries.all(), "custom", id],
+               queryFn: () => window.api.custom.get(id),
+               staleTime: 60 * 1000, // cache fresh for 1 minute
+           }),
     };
     ```
 
@@ -311,13 +338,13 @@ The roadmap is ordered so each milestone builds on the previous one. Each item s
 
 ### Phase 2: Typed IPC and Trusted Main APIs
 
-- [ ] **Add a typed IPC contract helper**: Create a small pattern for channel names, Zod request validation, typed responses, trusted sender validation, and consistent error serialization.
-- [ ] **Validate IPC sender frames**: Ensure IPC handlers only accept messages from trusted app frames/origins.
-- [ ] **Standardize IPC errors**: Return predictable, renderer-safe error shapes without leaking main-process internals.
-- [ ] **Migrate system IPC to the helper**: Move app version and system info IPC onto the shared contract pattern.
-- [ ] **Migrate settings IPC to the helper**: Keep Zod validation at the IPC boundary while standardizing handler registration and errors.
-- [ ] **Migrate theme IPC to the helper**: Keep theme events and mutations typed while preserving native theme behavior.
-- [ ] **Document the IPC feature recipe**: Show how to add a new main/preload/renderer query path without exposing raw Electron APIs.
+- [x] **Add a typed IPC contract helper**: Create a small pattern for channel names, Zod request validation, typed responses, trusted sender validation, and consistent error serialization.
+- [x] **Validate IPC sender frames**: Ensure IPC handlers only accept messages from trusted app frames/origins.
+- [x] **Standardize IPC errors**: Return predictable, renderer-safe error messages without leaking main-process internals.
+- [x] **Migrate system IPC to the helper**: Move app version and system info IPC onto the shared contract pattern.
+- [x] **Migrate settings IPC to the helper**: Keep Zod validation at the IPC boundary while standardizing handler registration and errors.
+- [x] **Migrate theme IPC to the helper**: Keep theme events and mutations typed while preserving native theme behavior.
+- [x] **Document the IPC feature recipe**: Show how to add a new main/preload/renderer query path without exposing raw Electron APIs.
 
 ### Phase 3: Safe Platform APIs
 
