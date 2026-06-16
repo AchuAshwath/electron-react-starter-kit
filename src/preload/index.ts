@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from "electron";
+import { settingsUpdatedChannel } from "../main/settings/settings.channels";
 import type {
 	UserSettings,
 	UserSettingsPatch,
@@ -23,6 +24,20 @@ const api = {
 		update: (patch: UserSettingsPatch): Promise<UserSettings> =>
 			ipcRenderer.invoke("settings:update", patch),
 		reset: (): Promise<UserSettings> => ipcRenderer.invoke("settings:reset"),
+		onUpdated: (callback: (settings: UserSettings) => void): (() => void) => {
+			const listener = (
+				_: Electron.IpcRendererEvent,
+				settings: UserSettings,
+			) => {
+				callback(settings);
+			};
+
+			ipcRenderer.on(settingsUpdatedChannel, listener);
+
+			return () => {
+				ipcRenderer.removeListener(settingsUpdatedChannel, listener);
+			};
+		},
 	},
 
 	theme: {

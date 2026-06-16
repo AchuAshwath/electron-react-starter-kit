@@ -22,6 +22,7 @@ declare global {
 				get: () => Promise<UserSettings>;
 				update: (patch: UserSettingsPatch) => Promise<UserSettings>;
 				reset: () => Promise<UserSettings>;
+				onUpdated: (callback: (settings: UserSettings) => void) => () => void;
 			};
 
 			theme: {
