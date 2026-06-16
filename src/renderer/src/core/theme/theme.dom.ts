@@ -25,7 +25,14 @@ export function readInitialThemeState(): ThemeState | undefined {
 }
 
 export function disableThemeTransitions(): () => void {
+	document
+		.querySelectorAll("[data-disable-theme-transitions]")
+		.forEach((element) => {
+			element.remove();
+		});
+
 	const style = document.createElement("style");
+	style.dataset.disableThemeTransitions = "true";
 
 	style.appendChild(
 		document.createTextNode("*,*::before,*::after{transition:none!important}"),
@@ -35,7 +42,11 @@ export function disableThemeTransitions(): () => void {
 
 	return () => {
 		window.getComputedStyle(document.body);
-		style.remove();
+		window.requestAnimationFrame(() => {
+			window.requestAnimationFrame(() => {
+				style.remove();
+			});
+		});
 	};
 }
 

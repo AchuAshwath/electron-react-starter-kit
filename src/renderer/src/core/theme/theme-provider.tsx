@@ -36,8 +36,8 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 	const value = useMemo(
 		() => ({
 			theme: themeQuery.data,
-			setTheme: (theme: ThemePreference) => {
-				setThemePreference.mutate(theme);
+			setTheme: (themePreference: ThemePreference) => {
+				setThemePreference.mutate(themePreference);
 			},
 			isChangingTheme: setThemePreference.isPending,
 		}),

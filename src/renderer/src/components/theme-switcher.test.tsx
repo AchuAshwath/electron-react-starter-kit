@@ -45,7 +45,7 @@ describe("ThemeSwitcher", () => {
 		apiMock.theme.onUpdated.mockReturnValue(() => undefined);
 	});
 
-	it("shows the current theme preference and updates it on click", async () => {
+	it("toggles from the resolved light theme to dark", async () => {
 		const user = userEvent.setup();
 		renderWithQueryClient(
 			<ThemeProvider>
@@ -54,13 +54,10 @@ describe("ThemeSwitcher", () => {
 		);
 
 		await waitFor(() => {
-			expect(screen.getByLabelText("Use system theme")).toHaveAttribute(
-				"aria-checked",
-				"true",
-			);
+			expect(screen.getByLabelText("Switch to dark theme")).toBeEnabled();
 		});
 
-		await user.click(screen.getByLabelText("Use dark theme"));
+		await user.click(screen.getByLabelText("Switch to dark theme"));
 
 		await waitFor(() => {
 			expect(apiMock.theme.setPreference).toHaveBeenCalledWith("dark");
