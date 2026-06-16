@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import {
 	CheckIcon,
 	LaptopIcon,
+	type LucideIcon,
 	Maximize2Icon,
 	MonitorIcon,
 	MoonIcon,
@@ -9,19 +10,13 @@ import {
 } from "lucide-react";
 import { Button } from "../../components/ui/button";
 import {
-	Card,
-	CardContent,
-	CardDescription,
-	CardHeader,
-	CardTitle,
-} from "../../components/ui/card";
-import {
 	useSettings,
 	useSettingsUpdatedListener,
 	useUpdateSettings,
 } from "../../core/settings/settings.hooks";
 import type { ThemePreference } from "../../core/theme/theme.types";
 import { useThemeContext } from "../../core/theme/theme-provider";
+import { cn } from "../../lib/utils";
 
 export const Route = createFileRoute("/(app)/settings")({
 	component: SettingsRoute,
@@ -35,25 +30,25 @@ type WindowBounds = {
 const themeOptions: Array<{
 	value: ThemePreference;
 	label: string;
-	description: string;
-	icon: typeof MonitorIcon;
+	helper: string;
+	icon: LucideIcon;
 }> = [
 	{
 		value: "system",
 		label: "System",
-		description: "Follow the operating system appearance.",
+		helper: "OS default",
 		icon: MonitorIcon,
 	},
 	{
 		value: "light",
 		label: "Light",
-		description: "Use a bright interface in every session.",
+		helper: "Bright UI",
 		icon: SunIcon,
 	},
 	{
 		value: "dark",
 		label: "Dark",
-		description: "Use a low-light interface in every session.",
+		helper: "Low-light UI",
 		icon: MoonIcon,
 	},
 ];
@@ -61,34 +56,36 @@ const themeOptions: Array<{
 const windowSizePresets: Array<{
 	id: string;
 	label: string;
-	description: string;
+	helper: string;
 	bounds: WindowBounds;
 }> = [
 	{
 		id: "compact",
 		label: "Compact",
-		description: "Good for quick previews and small displays.",
+		helper: "Small displays",
 		bounds: { width: 900, height: 670 },
 	},
 	{
 		id: "standard",
 		label: "Standard",
-		description: "Balanced desktop default for most apps.",
+		helper: "Default workspace",
 		bounds: { width: 1100, height: 720 },
 	},
 	{
 		id: "wide",
 		label: "Wide",
-		description: "More horizontal room for side panels.",
+		helper: "Side panels",
 		bounds: { width: 1280, height: 800 },
 	},
 	{
 		id: "workbench",
 		label: "Workbench",
-		description: "Roomy layout for developer tools and data views.",
+		helper: "Developer tools",
 		bounds: { width: 1440, height: 900 },
 	},
 ];
+
+const windowSizeMatchTolerance = 8;
 
 function SettingsRoute(): React.JSX.Element {
 	const settingsQuery = useSettings();
@@ -98,6 +95,8 @@ function SettingsRoute(): React.JSX.Element {
 	useSettingsUpdatedListener();
 
 	const selectedWindowBounds = settingsQuery.data?.windowBounds;
+	const selectedWindowSizeId =
+		findMatchingWindowSizePreset(selectedWindowBounds);
 	const isUpdatingWindowSize = updateSettings.isPending;
 
 	return (
@@ -110,115 +109,170 @@ function SettingsRoute(): React.JSX.Element {
 				</p>
 			</div>
 
-			<Card>
-				<CardHeader>
-					<div className="flex items-center justify-between gap-3">
-						<div className="flex flex-col gap-1">
-							<CardTitle>Appearance</CardTitle>
-							<CardDescription>
-								Choose how the renderer should resolve the app theme.
-							</CardDescription>
-						</div>
-					</div>
-				</CardHeader>
-				<CardContent className="grid gap-3 sm:grid-cols-3">
-					{themeOptions.map(({ value, label, description, icon: Icon }) => {
+			<SettingsSection
+				title="Appearance"
+				description="Choose how the renderer should resolve the app theme."
+			>
+				<OptionGrid columns="sm:grid-cols-3" label="Appearance">
+					{themeOptions.map(({ value, label, helper, icon: Icon }) => {
 						const isSelected = theme?.preference === value;
 
 						return (
-							<Button
+							<OptionButton
 								key={value}
-								type="button"
-								variant="outline"
-								className={
-									isSelected
-										? "min-h-24 justify-start gap-3 whitespace-normal border-foreground/20 bg-muted/70 px-3 py-3 text-left"
-										: "min-h-24 justify-start gap-3 whitespace-normal bg-card px-3 py-3 text-left"
-								}
+								icon={Icon}
+								label={label}
+								helper={helper}
+								selected={isSelected}
 								disabled={isChangingTheme}
-								aria-pressed={isSelected}
 								onClick={() => setTheme(value)}
-							>
-								<Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-								<span className="flex min-w-0 flex-1 flex-col gap-1 leading-normal">
-									<span className="text-sm font-medium leading-none">
-										{label}
-									</span>
-									<span className="break-words text-xs font-normal leading-snug text-muted-foreground">
-										{description}
-									</span>
-								</span>
-								{isSelected && (
-									<CheckIcon
-										className="h-4 w-4 shrink-0 text-muted-foreground"
-										aria-hidden="true"
-									/>
-								)}
-							</Button>
+							/>
 						);
 					})}
-				</CardContent>
-			</Card>
+				</OptionGrid>
+			</SettingsSection>
 
-			<Card>
-				<CardHeader>
-					<div className="flex items-start justify-between gap-3">
-						<div className="flex flex-col gap-1">
-							<CardTitle>Window Size</CardTitle>
-							<CardDescription>
-								Resize this window and remember the latest size.
-							</CardDescription>
-						</div>
-						<Maximize2Icon className="h-4 w-4 text-muted-foreground" />
-					</div>
-				</CardHeader>
-				<CardContent className="grid gap-3 md:grid-cols-2">
+			<SettingsSection
+				title="Window Size"
+				description="Resize this window and remember the latest size."
+				action={<Maximize2Icon className="h-4 w-4 text-muted-foreground" />}
+			>
+				<OptionGrid columns="sm:grid-cols-2" label="Window size">
 					{windowSizePresets.map((preset) => {
-						const isSelected =
-							selectedWindowBounds?.width === preset.bounds.width &&
-							selectedWindowBounds.height === preset.bounds.height;
+						const isSelected = selectedWindowSizeId === preset.id;
 
 						return (
-							<Button
+							<OptionButton
 								key={preset.id}
-								type="button"
-								variant="outline"
-								className={
-									isSelected
-										? "min-h-24 justify-start gap-3 whitespace-normal border-foreground/20 bg-muted/70 px-3 py-3 text-left"
-										: "min-h-24 justify-start gap-3 whitespace-normal bg-card px-3 py-3 text-left"
-								}
+								icon={LaptopIcon}
+								label={preset.label}
+								helper={`${preset.bounds.width} x ${preset.bounds.height} - ${preset.helper}`}
+								selected={isSelected}
 								disabled={settingsQuery.isPending || isUpdatingWindowSize}
-								aria-pressed={isSelected}
 								onClick={() =>
 									updateSettings.mutate({ windowBounds: preset.bounds })
 								}
-							>
-								<LaptopIcon className="h-4 w-4 shrink-0" aria-hidden="true" />
-								<span className="flex min-w-0 flex-1 flex-col gap-1 leading-normal">
-									<span className="flex flex-wrap items-center gap-2">
-										<span className="text-sm font-medium leading-none">
-											{preset.label}
-										</span>
-										<span className="text-xs font-normal leading-none text-muted-foreground">
-											{preset.bounds.width} x {preset.bounds.height}
-										</span>
-									</span>
-									<span className="break-words text-xs font-normal leading-snug text-muted-foreground">
-										{preset.description}
-									</span>
-								</span>
-								{isSelected && (
-									<CheckIcon
-										className="h-4 w-4 shrink-0 text-muted-foreground"
-										aria-hidden="true"
-									/>
-								)}
-							</Button>
+							/>
 						);
 					})}
-				</CardContent>
-			</Card>
+				</OptionGrid>
+			</SettingsSection>
 		</div>
+	);
+}
+
+function findMatchingWindowSizePreset(
+	windowBounds: WindowBounds | undefined,
+): string | undefined {
+	if (!windowBounds) {
+		return undefined;
+	}
+
+	return windowSizePresets.find((preset) => {
+		return (
+			Math.abs(windowBounds.width - preset.bounds.width) <=
+				windowSizeMatchTolerance &&
+			Math.abs(windowBounds.height - preset.bounds.height) <=
+				windowSizeMatchTolerance
+		);
+	})?.id;
+}
+
+function SettingsSection({
+	title,
+	description,
+	action,
+	children,
+}: {
+	title: string;
+	description: string;
+	action?: React.ReactNode;
+	children: React.ReactNode;
+}): React.JSX.Element {
+	return (
+		<section className="flex flex-col gap-3">
+			<div className="flex items-start justify-between gap-3">
+				<div className="flex flex-col gap-1">
+					<h2 className="text-base font-medium leading-snug">{title}</h2>
+					<p className="text-sm text-muted-foreground">{description}</p>
+				</div>
+				{action}
+			</div>
+			{children}
+		</section>
+	);
+}
+
+function OptionGrid({
+	children,
+	columns,
+	label,
+}: {
+	children: React.ReactNode;
+	columns: string;
+	label: string;
+}): React.JSX.Element {
+	return (
+		<fieldset className={cn("grid gap-2", columns)}>
+			<legend className="sr-only">{label}</legend>
+			{children}
+		</fieldset>
+	);
+}
+
+function OptionButton({
+	icon: Icon,
+	label,
+	helper,
+	selected,
+	disabled,
+	onClick,
+}: {
+	icon: LucideIcon;
+	label: string;
+	helper: string;
+	selected: boolean;
+	disabled?: boolean;
+	onClick: () => void;
+}): React.JSX.Element {
+	return (
+		<Button
+			type="button"
+			variant="outline"
+			size="lg"
+			className={cn(
+				"group min-h-14 justify-start gap-2.5 whitespace-normal border-border bg-background px-3 py-2 text-left shadow-none hover:border-border hover:bg-muted/50",
+				selected
+					? "border-primary/60 bg-primary/5 text-foreground ring-1 ring-primary/20 hover:border-primary/60 hover:bg-primary/5"
+					: "text-muted-foreground hover:text-foreground",
+			)}
+			disabled={disabled}
+			aria-pressed={selected}
+			onClick={onClick}
+		>
+			<Icon
+				aria-hidden="true"
+				data-icon="inline-start"
+				className={cn(
+					"text-muted-foreground group-hover:text-foreground",
+					selected && "text-primary group-hover:text-primary",
+				)}
+			/>
+			<span className="flex min-w-0 flex-1 flex-col gap-1">
+				<span className="flex min-w-0 items-start justify-between gap-3">
+					<span className="truncate text-sm font-medium leading-none">
+						{label}
+					</span>
+				</span>
+				<span className="truncate text-xs font-normal leading-none text-muted-foreground">
+					{helper}
+				</span>
+			</span>
+			{selected ? (
+				<span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
+					<CheckIcon aria-hidden="true" className="size-3" />
+				</span>
+			) : null}
+		</Button>
 	);
 }

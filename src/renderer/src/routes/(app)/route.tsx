@@ -1,5 +1,7 @@
 import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { ThemeSwitcher } from "../../components/theme-switcher";
+import { buttonVariants } from "../../components/ui/button";
+import { cn } from "../../lib/utils";
 
 export const Route = createFileRoute("/(app)")({
 	component: AppLayout,
@@ -13,13 +15,19 @@ function AppLayout(): React.JSX.Element {
 					<nav className="flex items-center gap-1">
 						<Link
 							to="/"
-							className="rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground [&.active]:bg-muted [&.active]:font-medium [&.active]:text-foreground"
+							className={cn(
+								buttonVariants({ variant: "ghost", size: "sm" }),
+								"text-muted-foreground hover:text-foreground [&.active]:bg-muted [&.active]:font-medium [&.active]:text-foreground",
+							)}
 						>
 							Home
 						</Link>
 						<Link
 							to="/settings"
-							className="rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground [&.active]:bg-muted [&.active]:font-medium [&.active]:text-foreground"
+							className={cn(
+								buttonVariants({ variant: "ghost", size: "sm" }),
+								"text-muted-foreground hover:text-foreground [&.active]:bg-muted [&.active]:font-medium [&.active]:text-foreground",
+							)}
 						>
 							Settings
 						</Link>
