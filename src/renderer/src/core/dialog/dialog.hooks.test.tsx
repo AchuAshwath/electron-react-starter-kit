@@ -3,7 +3,11 @@ import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createTestQueryClient } from "../../test/render";
-import { useOpenFileDialog, useSaveFileDialog } from "./dialog.hooks";
+import {
+	useDemoSelectedFilePaths,
+	useOpenFileDialog,
+	useSaveFileDialog,
+} from "./dialog.hooks";
 
 const apiMock = {
 	getAppVersion: vi.fn<Window["api"]["getAppVersion"]>(),
@@ -25,12 +29,14 @@ const apiMock = {
 	},
 };
 
-function wrapper({ children }: { children: ReactNode }) {
+function createWrapper() {
 	const queryClient = createTestQueryClient();
 
-	return (
-		<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
-	);
+	return function Wrapper({ children }: { children: ReactNode }) {
+		return (
+			<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+		);
+	};
 }
 
 describe("dialog hooks", () => {
@@ -46,7 +52,7 @@ describe("dialog hooks", () => {
 		const result = { canceled: false, filePaths: ["C:\\tmp\\notes.txt"] };
 		apiMock.dialog.openFile.mockResolvedValue(result);
 		const { result: hook } = renderHook(() => useOpenFileDialog(), {
-			wrapper,
+			wrapper: createWrapper(),
 		});
 
 		hook.current.mutate({
@@ -67,7 +73,7 @@ describe("dialog hooks", () => {
 		const result = { canceled: false, filePath: "C:\\tmp\\notes.txt" };
 		apiMock.dialog.saveFile.mockResolvedValue(result);
 		const { result: hook } = renderHook(() => useSaveFileDialog(), {
-			wrapper,
+			wrapper: createWrapper(),
 		});
 
 		hook.current.mutate({ defaultPath: "notes.txt" });
@@ -77,6 +83,39 @@ describe("dialog hooks", () => {
 		});
 		expect(apiMock.dialog.saveFile).toHaveBeenCalledWith({
 			defaultPath: "notes.txt",
+		});
+	});
+
+	it("keeps demo selected paths in the query cache", async () => {
+		const { result, rerender } = renderHook(() => useDemoSelectedFilePaths(), {
+			wrapper: createWrapper(),
+		});
+
+		result.current.addSelectedFilePaths([
+			"C:\\tmp\\notes.txt",
+			"C:\\tmp\\report.txt",
+		]);
+		rerender();
+
+		await waitFor(() => {
+			expect(result.current.selectedFilePaths).toEqual([
+				"C:\\tmp\\notes.txt",
+				"C:\\tmp\\report.txt",
+			]);
+		});
+
+		result.current.addSelectedFilePaths([
+			"C:\\tmp\\notes.txt",
+			"C:\\tmp\\summary.txt",
+		]);
+		rerender();
+
+		await waitFor(() => {
+			expect(result.current.selectedFilePaths).toEqual([
+				"C:\\tmp\\notes.txt",
+				"C:\\tmp\\report.txt",
+				"C:\\tmp\\summary.txt",
+			]);
 		});
 	});
 });
