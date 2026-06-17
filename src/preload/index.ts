@@ -6,6 +6,12 @@ import type {
 	SaveFileDialogInput,
 	SaveFileDialogResult,
 } from "../main/dialog/dialog.types";
+import { notificationIpcChannels } from "../main/notifications/notifications.channels";
+import type {
+	NotificationPermissionState,
+	ShowNotificationInput,
+	ShowNotificationResult,
+} from "../main/notifications/notifications.types";
 import { settingsUpdatedChannel } from "../main/settings/settings.channels";
 import type {
 	UserSettings,
@@ -69,6 +75,22 @@ const api = {
 			ipcRenderer.invoke(dialogIpcChannels.openFile, input),
 		saveFile: (input?: SaveFileDialogInput): Promise<SaveFileDialogResult> =>
 			ipcRenderer.invoke(dialogIpcChannels.saveFile, input),
+	},
+
+	notifications: {
+		getPermission: (): Promise<NotificationPermissionState> =>
+			ipcRenderer.invoke(notificationIpcChannels.getPermission),
+		requestPermission: (): Promise<NotificationPermissionState> =>
+			ipcRenderer.invoke(notificationIpcChannels.requestPermission),
+		setDesktopEnabled: (
+			desktopEnabled: boolean,
+		): Promise<NotificationPermissionState> =>
+			ipcRenderer.invoke(
+				notificationIpcChannels.setDesktopEnabled,
+				desktopEnabled,
+			),
+		show: (input: ShowNotificationInput): Promise<ShowNotificationResult> =>
+			ipcRenderer.invoke(notificationIpcChannels.show, input),
 	},
 
 	files: {
