@@ -141,7 +141,7 @@ export function FileUpload({
 			aria-label="File upload"
 			disabled={disabled}
 			className={cn(
-				"flex flex-col gap-3 rounded-xl border border-border bg-card p-3 shadow-sm transition-colors",
+				"mx-auto flex w-full max-w-xl min-w-0 flex-col gap-3 rounded-xl border border-border bg-card p-3 shadow-sm transition-colors",
 				isDragging && "border-primary bg-primary/5",
 				disabled && "opacity-60",
 				className,
@@ -150,7 +150,7 @@ export function FileUpload({
 			onDragOver={handleDragOver}
 			onDrop={handleDrop}
 		>
-			<div className="flex items-center gap-3">
+			<div className="flex min-w-0 items-center gap-3">
 				<div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border bg-muted/50">
 					<UploadIcon className="size-4 text-muted-foreground" />
 				</div>
@@ -181,6 +181,7 @@ export function FileUpload({
 				<Button
 					type="button"
 					variant="outline"
+					className="shrink-0"
 					disabled={!canAddFiles}
 					onClick={() => {
 						if (onChoose) {
@@ -196,11 +197,11 @@ export function FileUpload({
 			</div>
 
 			{displayItems.length > 0 ? (
-				<div className="flex flex-col gap-2">
+				<div className="flex min-w-0 flex-col gap-2">
 					{displayItems.map((item, index) => (
 						<div
 							key={`${item.name}-${item.description}`}
-							className="flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-2"
+							className="flex min-w-0 items-center gap-3 rounded-lg border border-border bg-background px-3 py-2"
 						>
 							<FileIcon className="size-4 shrink-0 text-muted-foreground" />
 							<div className="min-w-0 flex-1">
