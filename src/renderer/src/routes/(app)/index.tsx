@@ -10,6 +10,8 @@ export const Route = createFileRoute("/(app)/")({
 	component: HomeRoute,
 });
 
+const maxDemoFiles = 5;
+
 function HomeRoute(): React.JSX.Element {
 	const systemInfoQuery = useSystemInfo();
 	const openFileDialog = useOpenFileDialog();
@@ -18,13 +20,16 @@ function HomeRoute(): React.JSX.Element {
 
 	async function chooseFile(): Promise<void> {
 		const result = await openFileDialog.mutateAsync({
-			title: "Choose a file",
+			title: "Choose files",
 			buttonLabel: "Choose",
+			multiple: true,
 			filters: [{ name: "All files", extensions: ["*"] }],
 		});
 
 		if (!result.canceled) {
-			setSelectedFilePaths(result.filePaths);
+			setSelectedFilePaths((currentPaths) =>
+				mergeFilePaths(currentPaths, result.filePaths),
+			);
 		}
 	}
 
@@ -33,7 +38,9 @@ function HomeRoute(): React.JSX.Element {
 			.map((file) => window.api.files.getPathForFile(file))
 			.filter((path) => path.length > 0);
 
-		setSelectedFilePaths(filePaths);
+		setSelectedFilePaths((currentPaths) =>
+			mergeFilePaths(currentPaths, filePaths),
+		);
 	}
 
 	return (
@@ -79,12 +86,14 @@ function HomeRoute(): React.JSX.Element {
 
 				<section className="mx-auto w-full max-w-2xl">
 					<FileUpload
+						multiple
+						maxFiles={maxDemoFiles}
 						selectedPaths={selectedFilePaths}
 						onSelectedPathsChange={setSelectedFilePaths}
 						onFilesSelected={addDroppedFiles}
 						onChoose={chooseFile}
 						isChoosing={openFileDialog.isPending}
-						description="Drop a file here or choose one with Electron's native dialog."
+						description={`Drop up to ${maxDemoFiles} files here or choose them with Electron's native dialog.`}
 					/>
 				</section>
 
@@ -102,6 +111,13 @@ function HomeRoute(): React.JSX.Element {
 				</p>
 			</div>
 		</main>
+	);
+}
+
+function mergeFilePaths(currentPaths: string[], nextPaths: string[]): string[] {
+	return Array.from(new Set([...currentPaths, ...nextPaths])).slice(
+		0,
+		maxDemoFiles,
 	);
 }
 
