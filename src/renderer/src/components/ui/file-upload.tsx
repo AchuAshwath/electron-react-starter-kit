@@ -13,6 +13,8 @@ type FileUploadProps = {
 	defaultValue?: File[];
 	onValueChange?: (files: File[]) => void;
 	selectedPaths?: string[];
+	onSelectedPathsChange?: (paths: string[]) => void;
+	onFilesSelected?: (files: File[]) => void | Promise<void>;
 	onChoose?: () => void | Promise<void>;
 	isChoosing?: boolean;
 	maxFiles?: number;
@@ -29,6 +31,8 @@ export function FileUpload({
 	defaultValue = [],
 	onValueChange,
 	selectedPaths,
+	onSelectedPathsChange,
+	onFilesSelected,
 	onChoose,
 	isChoosing,
 	maxFiles = 1,
@@ -65,6 +69,10 @@ export function FileUpload({
 		onValueChange?.(nextFiles);
 	}
 
+	function updateSelectedPaths(nextPaths: string[]): void {
+		onSelectedPathsChange?.(nextPaths);
+	}
+
 	function resetInput(): void {
 		if (inputRef.current) {
 			inputRef.current.value = "";
@@ -91,18 +99,31 @@ export function FileUpload({
 			: allowedFiles;
 
 		setError("");
+
+		if (onFilesSelected) {
+			void onFilesSelected(allowedFiles);
+			return;
+		}
+
 		updateFiles(nextFiles);
 	}
 
 	function removeFile(fileIndex: number): void {
 		setError("");
+		if (selectedPaths) {
+			updateSelectedPaths(
+				selectedPaths.filter((_, index) => index !== fileIndex),
+			);
+			return;
+		}
+
 		updateFiles(files.filter((_, index) => index !== fileIndex));
 		resetInput();
 	}
 
 	function handleDragOver(event: DragEvent<HTMLFieldSetElement>): void {
 		event.preventDefault();
-		if (canAddFiles && !usesNativePicker) {
+		if (canAddFiles) {
 			setIsDragging(true);
 		}
 	}
@@ -110,7 +131,7 @@ export function FileUpload({
 	function handleDrop(event: DragEvent<HTMLFieldSetElement>): void {
 		event.preventDefault();
 		setIsDragging(false);
-		if (canAddFiles && !usesNativePicker) {
+		if (canAddFiles) {
 			addFiles(event.dataTransfer.files);
 		}
 	}
@@ -188,7 +209,7 @@ export function FileUpload({
 									{item.description}
 								</p>
 							</div>
-							{usesNativePicker ? null : (
+							{usesNativePicker && !onSelectedPathsChange ? null : (
 								<Button
 									type="button"
 									variant="ghost"

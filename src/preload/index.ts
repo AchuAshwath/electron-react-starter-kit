@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from "electron";
+import { contextBridge, ipcRenderer, webUtils } from "electron";
 import { dialogIpcChannels } from "../main/dialog/dialog.channels";
 import type {
 	OpenFileDialogInput,
@@ -69,6 +69,10 @@ const api = {
 			ipcRenderer.invoke(dialogIpcChannels.openFile, input),
 		saveFile: (input?: SaveFileDialogInput): Promise<SaveFileDialogResult> =>
 			ipcRenderer.invoke(dialogIpcChannels.saveFile, input),
+	},
+
+	files: {
+		getPathForFile: (file: File): string => webUtils.getPathForFile(file),
 	},
 };
 

@@ -45,6 +45,10 @@ declare global {
 					input?: SaveFileDialogInput,
 				) => Promise<SaveFileDialogResult>;
 			};
+
+			files: {
+				getPathForFile: (file: File) => string;
+			};
 		};
 	}
 }

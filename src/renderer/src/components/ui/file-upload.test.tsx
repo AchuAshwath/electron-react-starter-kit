@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { FileUpload } from "./file-upload";
@@ -37,6 +37,38 @@ describe("FileUpload", () => {
 			).toBeInTheDocument();
 		});
 		expect(onValueChange).not.toHaveBeenCalled();
+	});
+
+	it("passes dropped files to the native file callback", () => {
+		const onFilesSelected = vi.fn();
+		const file = new File(["hello"], "notes.txt", { type: "text/plain" });
+
+		render(<FileUpload onChoose={vi.fn()} onFilesSelected={onFilesSelected} />);
+
+		fireEvent.drop(screen.getByRole("group", { name: "File upload" }), {
+			dataTransfer: {
+				files: [file],
+			},
+		});
+
+		expect(onFilesSelected).toHaveBeenCalledWith([file]);
+	});
+
+	it("removes selected paths when a remove handler is provided", async () => {
+		const user = userEvent.setup();
+		const onSelectedPathsChange = vi.fn();
+
+		render(
+			<FileUpload
+				selectedPaths={["C:\\tmp\\notes.txt"]}
+				onSelectedPathsChange={onSelectedPathsChange}
+				onChoose={vi.fn()}
+			/>,
+		);
+
+		await user.click(screen.getByRole("button", { name: "Remove notes.txt" }));
+
+		expect(onSelectedPathsChange).toHaveBeenCalledWith([]);
 	});
 });
 

@@ -28,6 +28,14 @@ function HomeRoute(): React.JSX.Element {
 		}
 	}
 
+	function addDroppedFiles(files: File[]): void {
+		const filePaths = files
+			.map((file) => window.api.files.getPathForFile(file))
+			.filter((path) => path.length > 0);
+
+		setSelectedFilePaths(filePaths);
+	}
+
 	return (
 		<main className="mx-auto grid min-h-[calc(100svh-3rem)] w-full max-w-4xl grid-rows-[1fr_auto_1fr] px-6 py-8">
 			<div className="row-start-2 flex flex-col gap-8">
@@ -72,9 +80,11 @@ function HomeRoute(): React.JSX.Element {
 				<section className="mx-auto w-full max-w-2xl">
 					<FileUpload
 						selectedPaths={selectedFilePaths}
+						onSelectedPathsChange={setSelectedFilePaths}
+						onFilesSelected={addDroppedFiles}
 						onChoose={chooseFile}
 						isChoosing={openFileDialog.isPending}
-						description="Choose a file with Electron's native dialog."
+						description="Drop a file here or choose one with Electron's native dialog."
 					/>
 				</section>
 
