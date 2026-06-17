@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { toast } from "sonner";
 import electronLogo from "../../assets/electron.svg";
 import { Badge } from "../../components/ui/badge";
 import { FileUpload } from "../../components/ui/file-upload";
@@ -33,6 +34,7 @@ function HomeRoute(): React.JSX.Element {
 
 		if (!result.canceled) {
 			addSelectedFilePaths(result.filePaths);
+			showFilesSelectedToast(result.filePaths.length);
 		}
 	}
 
@@ -42,6 +44,15 @@ function HomeRoute(): React.JSX.Element {
 			.filter((path) => path.length > 0);
 
 		addSelectedFilePaths(filePaths);
+		showFilesSelectedToast(filePaths.length);
+	}
+
+	function showFilesSelectedToast(fileCount: number): void {
+		if (fileCount === 0) {
+			return;
+		}
+
+		toast.success(`${fileCount} file${fileCount === 1 ? "" : "s"} added`);
 	}
 
 	return (
