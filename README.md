@@ -361,6 +361,7 @@ The roadmap is ordered so each milestone builds on the previous one. Each item s
 
 - [ ] **Add SafeStorage-backed secrets**: Store tokens, API keys, and other sensitive values through Electron `safeStorage`, separate from normal `electron-store` preferences.
 - [x] **Add file picker/save dialog APIs**: Expose typed main-process wrappers for open/save dialogs through preload, support drag-and-drop file path resolution, and document the recommended renderer usage.
+- [ ] **Add imported file storage workflow**: Provide a hybrid file-upload path that can copy selected files into app-owned storage under `app.getPath("userData")`, persist metadata in a dedicated store, verify missing/moved files, and keep simple file selection separate from durable app state.
 - [ ] **Add native notifications module with permission UI**: Provide a typed notification API, default-deny permission policy, renderer hooks, and user-facing permission/request states.
 
 ### Phase 4: Auth Foundation
