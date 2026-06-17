@@ -12,6 +12,9 @@ type FileUploadProps = {
 	value?: File[];
 	defaultValue?: File[];
 	onValueChange?: (files: File[]) => void;
+	selectedPaths?: string[];
+	onChoose?: () => void | Promise<void>;
+	isChoosing?: boolean;
 	maxFiles?: number;
 	maxSize?: number;
 	description?: string;
@@ -25,6 +28,9 @@ export function FileUpload({
 	value,
 	defaultValue = [],
 	onValueChange,
+	selectedPaths,
+	onChoose,
+	isChoosing,
 	maxFiles = 1,
 	maxSize,
 	description = "Drop a file here or choose one from your computer.",
@@ -39,7 +45,20 @@ export function FileUpload({
 	const [isDragging, setIsDragging] = useState(false);
 	const [error, setError] = useState<string>("");
 	const files = value ?? internalFiles;
-	const canAddFiles = !disabled && files.length < maxFiles;
+	const selectedPathItems = selectedPaths?.map((path) => ({
+		name: getFileNameFromPath(path),
+		description: path,
+	}));
+	const fileItems = files.map((file) => ({
+		name: file.name,
+		description: formatFileSize(file.size),
+	}));
+	const displayItems = selectedPathItems ?? fileItems;
+	const usesNativePicker = Boolean(onChoose);
+	const canAddFiles =
+		!disabled &&
+		!isChoosing &&
+		(selectedPaths ? selectedPaths.length < maxFiles : files.length < maxFiles);
 
 	function updateFiles(nextFiles: File[]): void {
 		setInternalFiles(nextFiles);
@@ -83,7 +102,7 @@ export function FileUpload({
 
 	function handleDragOver(event: DragEvent<HTMLFieldSetElement>): void {
 		event.preventDefault();
-		if (canAddFiles) {
+		if (canAddFiles && !usesNativePicker) {
 			setIsDragging(true);
 		}
 	}
@@ -91,7 +110,7 @@ export function FileUpload({
 	function handleDrop(event: DragEvent<HTMLFieldSetElement>): void {
 		event.preventDefault();
 		setIsDragging(false);
-		if (canAddFiles) {
+		if (canAddFiles && !usesNativePicker) {
 			addFiles(event.dataTransfer.files);
 		}
 	}
@@ -116,8 +135,8 @@ export function FileUpload({
 				</div>
 				<div className="min-w-0 flex-1 text-left">
 					<p className="truncate text-sm font-medium">
-						{files.length > 0
-							? `${files.length} file${files.length > 1 ? "s" : ""} selected`
+						{displayItems.length > 0
+							? `${displayItems.length} file${displayItems.length > 1 ? "s" : ""} selected`
 							: "Upload a file"}
 					</p>
 					<p className="truncate text-xs text-muted-foreground">
@@ -142,36 +161,45 @@ export function FileUpload({
 					type="button"
 					variant="outline"
 					disabled={!canAddFiles}
-					onClick={() => inputRef.current?.click()}
+					onClick={() => {
+						if (onChoose) {
+							void onChoose();
+							return;
+						}
+
+						inputRef.current?.click();
+					}}
 				>
-					Choose
+					{isChoosing ? "Choosing" : "Choose"}
 				</Button>
 			</div>
 
-			{files.length > 0 ? (
+			{displayItems.length > 0 ? (
 				<div className="flex flex-col gap-2">
-					{files.map((file, index) => (
+					{displayItems.map((item, index) => (
 						<div
-							key={`${file.name}-${file.lastModified}`}
+							key={`${item.name}-${item.description}`}
 							className="flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-2"
 						>
 							<FileIcon className="size-4 shrink-0 text-muted-foreground" />
 							<div className="min-w-0 flex-1">
-								<p className="truncate text-sm font-medium">{file.name}</p>
-								<p className="text-xs text-muted-foreground">
-									{formatFileSize(file.size)}
+								<p className="truncate text-sm font-medium">{item.name}</p>
+								<p className="truncate text-xs text-muted-foreground">
+									{item.description}
 								</p>
 							</div>
-							<Button
-								type="button"
-								variant="ghost"
-								size="icon-sm"
-								aria-label={`Remove ${file.name}`}
-								disabled={disabled}
-								onClick={() => removeFile(index)}
-							>
-								<XIcon aria-hidden="true" />
-							</Button>
+							{usesNativePicker ? null : (
+								<Button
+									type="button"
+									variant="ghost"
+									size="icon-sm"
+									aria-label={`Remove ${item.name}`}
+									disabled={disabled}
+									onClick={() => removeFile(index)}
+								>
+									<XIcon aria-hidden="true" />
+								</Button>
+							)}
 						</div>
 					))}
 				</div>
@@ -193,4 +221,8 @@ function formatFileSize(bytes: number): string {
 	const size = bytes / 1024 ** unitIndex;
 
 	return `${size.toFixed(size >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+}
+
+function getFileNameFromPath(path: string): string {
+	return path.split(/[\\/]/).pop() || path;
 }

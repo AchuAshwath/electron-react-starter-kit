@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import electronLogo from "../../assets/electron.svg";
 import { Badge } from "../../components/ui/badge";
 import { FileUpload } from "../../components/ui/file-upload";
+import { useOpenFileDialog } from "../../core/dialog/dialog.hooks";
 import { useSystemInfo } from "../../core/system/system.hooks";
 
 export const Route = createFileRoute("/(app)/")({
@@ -10,7 +12,21 @@ export const Route = createFileRoute("/(app)/")({
 
 function HomeRoute(): React.JSX.Element {
 	const systemInfoQuery = useSystemInfo();
+	const openFileDialog = useOpenFileDialog();
+	const [selectedFilePaths, setSelectedFilePaths] = useState<string[]>([]);
 	const systemInfo = systemInfoQuery.data;
+
+	async function chooseFile(): Promise<void> {
+		const result = await openFileDialog.mutateAsync({
+			title: "Choose a file",
+			buttonLabel: "Choose",
+			filters: [{ name: "All files", extensions: ["*"] }],
+		});
+
+		if (!result.canceled) {
+			setSelectedFilePaths(result.filePaths);
+		}
+	}
 
 	return (
 		<main className="mx-auto grid min-h-[calc(100svh-3rem)] w-full max-w-4xl grid-rows-[1fr_auto_1fr] px-6 py-8">
@@ -54,7 +70,12 @@ function HomeRoute(): React.JSX.Element {
 				</section>
 
 				<section className="mx-auto w-full max-w-2xl">
-					<FileUpload maxSize={10 * 1024 * 1024} />
+					<FileUpload
+						selectedPaths={selectedFilePaths}
+						onChoose={chooseFile}
+						isChoosing={openFileDialog.isPending}
+						description="Choose a file with Electron's native dialog."
+					/>
 				</section>
 
 				<p className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
