@@ -11,16 +11,22 @@ export const startupSettingsSchema = z.object({
 	openDevTools: z.boolean(),
 });
 
+export const notificationSettingsSchema = z.object({
+	desktopEnabled: z.boolean(),
+});
+
 export const userSettingsSchema = z.object({
 	theme: themePreferenceSchema,
 	windowBounds: windowBoundsSchema,
 	startup: startupSettingsSchema,
+	notifications: notificationSettingsSchema,
 });
 
 export const userSettingsPatchSchema = z.object({
 	theme: themePreferenceSchema.optional(),
 	windowBounds: windowBoundsSchema.partial().optional(),
 	startup: startupSettingsSchema.partial().optional(),
+	notifications: notificationSettingsSchema.partial().optional(),
 });
 
 export type ThemePreference = z.infer<typeof themePreferenceSchema>;
@@ -36,5 +42,8 @@ export const defaultSettings: UserSettings = {
 	},
 	startup: {
 		openDevTools: false,
+	},
+	notifications: {
+		desktopEnabled: false,
 	},
 };

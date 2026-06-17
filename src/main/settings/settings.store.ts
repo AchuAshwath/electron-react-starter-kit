@@ -40,6 +40,10 @@ export function updateSettings(patch: UserSettingsPatch): UserSettings {
 			...currentSettings.startup,
 			...patch.startup,
 		},
+		notifications: {
+			...currentSettings.notifications,
+			...patch.notifications,
+		},
 		windowBounds: {
 			...currentSettings.windowBounds,
 			...patch.windowBounds,
