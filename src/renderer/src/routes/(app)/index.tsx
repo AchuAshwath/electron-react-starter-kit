@@ -2,6 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import electronLogo from "../../assets/electron.svg";
 import { Badge } from "../../components/ui/badge";
 import { FileUpload } from "../../components/ui/file-upload";
+import {
+	useDemoSelectedFilePaths,
+	useOpenFileDialog,
+} from "../../core/dialog/dialog.hooks";
 import { useSystemInfo } from "../../core/system/system.hooks";
 
 export const Route = createFileRoute("/(app)/")({
@@ -10,7 +14,35 @@ export const Route = createFileRoute("/(app)/")({
 
 function HomeRoute(): React.JSX.Element {
 	const systemInfoQuery = useSystemInfo();
+	const openFileDialog = useOpenFileDialog();
+	const {
+		addSelectedFilePaths,
+		maxFiles,
+		selectedFilePaths,
+		setSelectedFilePaths,
+	} = useDemoSelectedFilePaths();
 	const systemInfo = systemInfoQuery.data;
+
+	async function chooseFile(): Promise<void> {
+		const result = await openFileDialog.mutateAsync({
+			title: "Choose files",
+			buttonLabel: "Choose",
+			multiple: true,
+			filters: [{ name: "All files", extensions: ["*"] }],
+		});
+
+		if (!result.canceled) {
+			addSelectedFilePaths(result.filePaths);
+		}
+	}
+
+	function addDroppedFiles(files: File[]): void {
+		const filePaths = files
+			.map((file) => window.api.files.getPathForFile(file))
+			.filter((path) => path.length > 0);
+
+		addSelectedFilePaths(filePaths);
+	}
 
 	return (
 		<main className="mx-auto grid min-h-[calc(100svh-3rem)] w-full max-w-4xl grid-rows-[1fr_auto_1fr] px-6 py-8">
@@ -54,7 +86,16 @@ function HomeRoute(): React.JSX.Element {
 				</section>
 
 				<section className="mx-auto w-full max-w-2xl">
-					<FileUpload maxSize={10 * 1024 * 1024} />
+					<FileUpload
+						multiple
+						maxFiles={maxFiles}
+						selectedPaths={selectedFilePaths}
+						onSelectedPathsChange={setSelectedFilePaths}
+						onFilesSelected={addDroppedFiles}
+						onChoose={chooseFile}
+						isChoosing={openFileDialog.isPending}
+						description={`Drop up to ${maxFiles} files here or choose them with Electron's native dialog.`}
+					/>
 				</section>
 
 				<p className="flex items-center justify-center gap-2 text-xs text-muted-foreground">

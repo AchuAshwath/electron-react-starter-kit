@@ -1,4 +1,10 @@
 import type {
+	OpenFileDialogInput,
+	OpenFileDialogResult,
+	SaveFileDialogInput,
+	SaveFileDialogResult,
+} from "../main/dialog/dialog.types.ts";
+import type {
 	UserSettings,
 	UserSettingsPatch,
 } from "../main/settings/settings.types.ts";
@@ -29,6 +35,19 @@ declare global {
 				get: () => Promise<ThemeState>;
 				setPreference: (theme: UserSettings["theme"]) => Promise<ThemeState>;
 				onUpdated: (callback: (theme: ThemeState) => void) => () => void;
+			};
+
+			dialog: {
+				openFile: (
+					input?: OpenFileDialogInput,
+				) => Promise<OpenFileDialogResult>;
+				saveFile: (
+					input?: SaveFileDialogInput,
+				) => Promise<SaveFileDialogResult>;
+			};
+
+			files: {
+				getPathForFile: (file: File) => string;
 			};
 		};
 	}

@@ -2,6 +2,7 @@ import { join } from "node:path";
 import { electronApp, is, optimizer } from "@electron-toolkit/utils";
 import { app, BrowserWindow, ipcMain } from "electron";
 import icon from "../../resources/icon.png?asset";
+import { registerDialogIpcHandlers } from "./dialog/dialog.ipc";
 import { createIpcHandlerRegistrar } from "./ipc/ipc-handler";
 import {
 	assertTrustedIpcSender,
@@ -133,6 +134,7 @@ app.whenReady().then(() => {
 
 	registerSettingsIpcHandlers(registerIpcHandler);
 	registerThemeIpcHandlers(registerIpcHandler);
+	registerDialogIpcHandlers(registerIpcHandler);
 
 	createWindow();
 

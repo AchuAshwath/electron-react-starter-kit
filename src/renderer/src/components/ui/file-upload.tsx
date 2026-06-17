@@ -7,11 +7,17 @@ import {
 } from "react";
 import { cn } from "../../lib/utils";
 import { Button } from "./button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
 
 type FileUploadProps = {
 	value?: File[];
 	defaultValue?: File[];
 	onValueChange?: (files: File[]) => void;
+	selectedPaths?: string[];
+	onSelectedPathsChange?: (paths: string[]) => void;
+	onFilesSelected?: (files: File[]) => void | Promise<void>;
+	onChoose?: () => void | Promise<void>;
+	isChoosing?: boolean;
 	maxFiles?: number;
 	maxSize?: number;
 	description?: string;
@@ -25,6 +31,11 @@ export function FileUpload({
 	value,
 	defaultValue = [],
 	onValueChange,
+	selectedPaths,
+	onSelectedPathsChange,
+	onFilesSelected,
+	onChoose,
+	isChoosing,
 	maxFiles = 1,
 	maxSize,
 	description = "Drop a file here or choose one from your computer.",
@@ -39,11 +50,28 @@ export function FileUpload({
 	const [isDragging, setIsDragging] = useState(false);
 	const [error, setError] = useState<string>("");
 	const files = value ?? internalFiles;
-	const canAddFiles = !disabled && files.length < maxFiles;
+	const selectedPathItems = selectedPaths?.map((path) => ({
+		name: getFileNameFromPath(path),
+		description: path,
+	}));
+	const fileItems = files.map((file) => ({
+		name: file.name,
+		description: formatFileSize(file.size),
+	}));
+	const displayItems = selectedPathItems ?? fileItems;
+	const usesNativePicker = Boolean(onChoose);
+	const canAddFiles =
+		!disabled &&
+		!isChoosing &&
+		(selectedPaths ? selectedPaths.length < maxFiles : files.length < maxFiles);
 
 	function updateFiles(nextFiles: File[]): void {
 		setInternalFiles(nextFiles);
 		onValueChange?.(nextFiles);
+	}
+
+	function updateSelectedPaths(nextPaths: string[]): void {
+		onSelectedPathsChange?.(nextPaths);
 	}
 
 	function resetInput(): void {
@@ -72,11 +100,24 @@ export function FileUpload({
 			: allowedFiles;
 
 		setError("");
+
+		if (onFilesSelected) {
+			void onFilesSelected(allowedFiles);
+			return;
+		}
+
 		updateFiles(nextFiles);
 	}
 
 	function removeFile(fileIndex: number): void {
 		setError("");
+		if (selectedPaths) {
+			updateSelectedPaths(
+				selectedPaths.filter((_, index) => index !== fileIndex),
+			);
+			return;
+		}
+
 		updateFiles(files.filter((_, index) => index !== fileIndex));
 		resetInput();
 	}
@@ -101,7 +142,7 @@ export function FileUpload({
 			aria-label="File upload"
 			disabled={disabled}
 			className={cn(
-				"flex flex-col gap-3 rounded-xl border border-border bg-card p-3 shadow-sm transition-colors",
+				"mx-auto flex w-full max-w-xl min-w-0 flex-col gap-3 rounded-xl border border-border bg-card p-3 shadow-sm transition-colors",
 				isDragging && "border-primary bg-primary/5",
 				disabled && "opacity-60",
 				className,
@@ -110,14 +151,14 @@ export function FileUpload({
 			onDragOver={handleDragOver}
 			onDrop={handleDrop}
 		>
-			<div className="flex items-center gap-3">
+			<div className="flex min-w-0 items-center gap-3">
 				<div className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border bg-muted/50">
 					<UploadIcon className="size-4 text-muted-foreground" />
 				</div>
 				<div className="min-w-0 flex-1 text-left">
 					<p className="truncate text-sm font-medium">
-						{files.length > 0
-							? `${files.length} file${files.length > 1 ? "s" : ""} selected`
+						{displayItems.length > 0
+							? `${displayItems.length} file${displayItems.length > 1 ? "s" : ""} selected`
 							: "Upload a file"}
 					</p>
 					<p className="truncate text-xs text-muted-foreground">
@@ -141,37 +182,51 @@ export function FileUpload({
 				<Button
 					type="button"
 					variant="outline"
+					className="shrink-0"
 					disabled={!canAddFiles}
-					onClick={() => inputRef.current?.click()}
+					onClick={() => {
+						if (onChoose) {
+							void onChoose();
+							return;
+						}
+
+						inputRef.current?.click();
+					}}
 				>
-					Choose
+					{isChoosing ? "Choosing" : "Choose"}
 				</Button>
 			</div>
 
-			{files.length > 0 ? (
-				<div className="flex flex-col gap-2">
-					{files.map((file, index) => (
+			{displayItems.length > 0 ? (
+				<div className="flex min-w-0 flex-col gap-2">
+					{displayItems.map((item, index) => (
 						<div
-							key={`${file.name}-${file.lastModified}`}
-							className="flex items-center gap-3 rounded-lg border border-border bg-background px-3 py-2"
+							key={`${item.name}-${item.description}`}
+							className="flex min-w-0 items-center gap-3 rounded-lg border border-border bg-background px-3 py-2"
 						>
 							<FileIcon className="size-4 shrink-0 text-muted-foreground" />
 							<div className="min-w-0 flex-1">
-								<p className="truncate text-sm font-medium">{file.name}</p>
-								<p className="text-xs text-muted-foreground">
-									{formatFileSize(file.size)}
-								</p>
+								<FileTextTooltip
+									value={item.name}
+									className="text-sm font-medium"
+								/>
+								<FileTextTooltip
+									value={item.description}
+									className="text-xs text-muted-foreground"
+								/>
 							</div>
-							<Button
-								type="button"
-								variant="ghost"
-								size="icon-sm"
-								aria-label={`Remove ${file.name}`}
-								disabled={disabled}
-								onClick={() => removeFile(index)}
-							>
-								<XIcon aria-hidden="true" />
-							</Button>
+							{usesNativePicker && !onSelectedPathsChange ? null : (
+								<Button
+									type="button"
+									variant="ghost"
+									size="icon-sm"
+									aria-label={`Remove ${item.name}`}
+									disabled={disabled}
+									onClick={() => removeFile(index)}
+								>
+									<XIcon aria-hidden="true" />
+								</Button>
+							)}
 						</div>
 					))}
 				</div>
@@ -193,4 +248,33 @@ function formatFileSize(bytes: number): string {
 	const size = bytes / 1024 ** unitIndex;
 
 	return `${size.toFixed(size >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+}
+
+function FileTextTooltip({
+	value,
+	className,
+}: {
+	value: string;
+	className?: string;
+}): React.JSX.Element {
+	return (
+		<Tooltip>
+			<TooltipTrigger
+				closeOnClick={false}
+				className={cn(
+					"block max-w-full truncate border-0 bg-transparent p-0 text-left font-inherit leading-inherit text-inherit outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+					className,
+				)}
+			>
+				{value}
+			</TooltipTrigger>
+			<TooltipContent align="start" className="max-w-sm break-all">
+				{value}
+			</TooltipContent>
+		</Tooltip>
+	);
+}
+
+function getFileNameFromPath(path: string): string {
+	return path.split(/[\\/]/).pop() || path;
 }

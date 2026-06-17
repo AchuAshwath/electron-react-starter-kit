@@ -43,6 +43,7 @@ Discover the core stack driving this starter template:
 * 🎨 **Modern UI Foundation**: Tailwind CSS v4, shadcn/ui-style primitives, lucide icons, and shared utilities are preconfigured.
 * 🌓 **Desktop-Aware Theme Switching**: Light, dark, and system themes are persisted through main-process settings and resolved with Electron `nativeTheme`.
 * 💾 **Validated User Settings**: `electron-store` persists normal preferences, while Zod validates settings updates at the IPC boundary.
+* **Native File Upload Demo**: Electron open/save dialogs, drag-and-drop path handling, shadcn-style file rows, and session-scoped upload state are wired through preload-safe APIs.
 * 🧪 **Testing Setup**: Vitest, Testing Library, jsdom, coverage, and local test helpers are ready for main-process services, query factories, hooks, and components.
 * 🛠 **Git Guardrails & Hooks**: Husky, lint-staged, and commitlint enforce formatting, linting, and Conventional Commits.
 * 🤖 **Continuous Integration**: GitHub Actions verifies install, lint, format, typecheck, tests, and production build.
@@ -118,7 +119,7 @@ You need [Node.js](https://nodejs.org/) (v22 or newer) and [pnpm](https://pnpm.i
 
 ## 🔄 IPC & Querying Architecture
 
-This starter kit implements a typed IPC platform around Electron's `ipcMain.handle` / `ipcRenderer.invoke` flow and the **TkDodo Query Factory pattern**. The current preload API exposes app version, system info, settings, and theme capabilities through `window.api`, while the renderer consumes those APIs through feature-specific query factories and hooks.
+This starter kit implements a typed IPC platform around Electron's `ipcMain.handle` / `ipcRenderer.invoke` flow and the **TkDodo Query Factory pattern**. The current preload API exposes app version, system info, settings, theme, dialog, and file path capabilities through `window.api`, while the renderer consumes those APIs through feature-specific query factories and hooks.
 
 Main-process handlers are registered through `createIpcHandlerRegistrar`, which applies trusted sender validation before handler execution, validates request payloads with Zod when a schema is provided, and converts thrown errors into renderer-safe messages such as `BAD_REQUEST: Invalid IPC request payload.`. Renderer code should treat the rejected error `message` as the stable error contract because Electron does not preserve custom error fields across `ipcRenderer.invoke`.
 
@@ -283,6 +284,16 @@ Theme tests live beside the files they cover: main-process service tests cover `
 
 ---
 
+## Native File Uploads
+
+The starter kit includes a complete native file upload demo that keeps Electron-only capabilities outside the renderer. The main process owns `dialog.showOpenDialog()` and `dialog.showSaveDialog()` through typed IPC handlers in `src/main/dialog`, preload exposes narrow `window.api.dialog` and `window.api.files` methods, and the renderer consumes those APIs through `src/renderer/src/core/dialog` hooks.
+
+The home route demonstrates both selection paths: the Choose button opens Electron's native multi-file dialog, while drag-and-drop receives browser `File` objects and asks preload to resolve safe file paths with `webUtils.getPathForFile(file)`. Selected paths are stored in the TanStack Query cache for the current app session, so navigating away and back preserves the demo state without writing file selections to `electron-store`. Persistent recent files should be added as a separate feature when an app actually needs that behavior.
+
+The reusable `FileUpload` component supports single or multiple files, max-file limits, removable path rows, long-path truncation, and shadcn/Base UI tooltips for inspecting full file names and paths.
+
+---
+
 ## 📜 Available Scripts
 
 | Script | Command | Purpose |
@@ -349,7 +360,7 @@ The roadmap is ordered so each milestone builds on the previous one. Each item s
 ### Phase 3: Safe Platform APIs
 
 - [ ] **Add SafeStorage-backed secrets**: Store tokens, API keys, and other sensitive values through Electron `safeStorage`, separate from normal `electron-store` preferences.
-- [ ] **Add file picker/save dialog APIs**: Expose typed main-process wrappers for open/save dialogs through preload and document the recommended renderer usage.
+- [x] **Add file picker/save dialog APIs**: Expose typed main-process wrappers for open/save dialogs through preload, support drag-and-drop file path resolution, and document the recommended renderer usage.
 - [ ] **Add native notifications module with permission UI**: Provide a typed notification API, default-deny permission policy, renderer hooks, and user-facing permission/request states.
 
 ### Phase 4: Auth Foundation
