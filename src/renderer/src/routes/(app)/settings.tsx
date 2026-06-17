@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import {
+	BellOffIcon,
+	BellRingIcon,
 	CheckIcon,
 	LaptopIcon,
 	type LucideIcon,
@@ -8,7 +10,13 @@ import {
 	MoonIcon,
 	SunIcon,
 } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "../../components/ui/button";
+import {
+	useNotificationPermission,
+	useSetDesktopNotificationsEnabled,
+	useShowNotification,
+} from "../../core/notifications/notification.hooks";
 import {
 	useSettings,
 	useSettingsUpdatedListener,
@@ -91,6 +99,9 @@ function SettingsRoute(): React.JSX.Element {
 	const settingsQuery = useSettings();
 	const updateSettings = useUpdateSettings();
 	const { theme, setTheme, isChangingTheme } = useThemeContext();
+	const notificationPermissionQuery = useNotificationPermission();
+	const setDesktopNotifications = useSetDesktopNotificationsEnabled();
+	const showNotification = useShowNotification();
 
 	useSettingsUpdatedListener();
 
@@ -98,6 +109,56 @@ function SettingsRoute(): React.JSX.Element {
 	const selectedWindowSizeId =
 		findMatchingWindowSizePreset(selectedWindowBounds);
 	const isUpdatingWindowSize = updateSettings.isPending;
+	const notificationPermission = notificationPermissionQuery.data;
+	const notificationsSupported = notificationPermission?.supported !== false;
+	const desktopNotificationsEnabled =
+		notificationPermission?.desktopEnabled === true;
+	const isUpdatingNotifications =
+		notificationPermissionQuery.isLoading ||
+		setDesktopNotifications.isPending ||
+		showNotification.isPending;
+
+	async function setNotificationsEnabled(enabled: boolean): Promise<void> {
+		try {
+			const permission = await setDesktopNotifications.mutateAsync(enabled);
+
+			if (!permission.supported) {
+				toast.error("Desktop notifications are not supported here.");
+				return;
+			}
+
+			toast.success(
+				enabled
+					? "Desktop notifications enabled"
+					: "Desktop notifications disabled",
+			);
+		} catch {
+			toast.error("Could not update notification preference.");
+		}
+	}
+
+	async function sendTestNotification(): Promise<void> {
+		try {
+			const result = await showNotification.mutateAsync({
+				title: "Notifications are ready",
+				body: "This starter kit can send native desktop notifications from the main process.",
+			});
+
+			if (result.shown) {
+				toast.success("Test notification sent");
+				return;
+			}
+
+			toast.message("Test notification skipped", {
+				description:
+					result.reason === "disabled"
+						? "Enable desktop notifications first."
+						: "This platform does not support native notifications.",
+			});
+		} catch {
+			toast.error("Could not send test notification.");
+		}
+	}
 
 	return (
 		<div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-8">
@@ -156,6 +217,50 @@ function SettingsRoute(): React.JSX.Element {
 						);
 					})}
 				</OptionGrid>
+			</SettingsSection>
+
+			<SettingsSection
+				title="Notifications"
+				description="Control whether the app may send native desktop notifications."
+				action={<BellRingIcon className="h-4 w-4 text-muted-foreground" />}
+			>
+				<OptionGrid columns="sm:grid-cols-2" label="Notifications">
+					<OptionButton
+						icon={BellRingIcon}
+						label="Enabled"
+						helper={
+							notificationsSupported
+								? "Allow desktop alerts"
+								: "Unavailable here"
+						}
+						selected={desktopNotificationsEnabled}
+						disabled={!notificationsSupported || isUpdatingNotifications}
+						onClick={() => void setNotificationsEnabled(true)}
+					/>
+					<OptionButton
+						icon={BellOffIcon}
+						label="Disabled"
+						helper="In-app feedback only"
+						selected={!desktopNotificationsEnabled}
+						disabled={isUpdatingNotifications}
+						onClick={() => void setNotificationsEnabled(false)}
+					/>
+				</OptionGrid>
+				<div className="flex justify-start">
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						disabled={
+							!desktopNotificationsEnabled ||
+							!notificationsSupported ||
+							isUpdatingNotifications
+						}
+						onClick={() => void sendTestNotification()}
+					>
+						Send test
+					</Button>
+				</div>
 			</SettingsSection>
 		</div>
 	);
