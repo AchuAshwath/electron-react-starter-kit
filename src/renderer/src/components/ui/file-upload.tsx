@@ -7,6 +7,7 @@ import {
 } from "react";
 import { cn } from "../../lib/utils";
 import { Button } from "./button";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
 
 type FileUploadProps = {
 	value?: File[];
@@ -205,10 +206,14 @@ export function FileUpload({
 						>
 							<FileIcon className="size-4 shrink-0 text-muted-foreground" />
 							<div className="min-w-0 flex-1">
-								<p className="truncate text-sm font-medium">{item.name}</p>
-								<p className="truncate text-xs text-muted-foreground">
-									{item.description}
-								</p>
+								<FileTextTooltip
+									value={item.name}
+									className="text-sm font-medium"
+								/>
+								<FileTextTooltip
+									value={item.description}
+									className="text-xs text-muted-foreground"
+								/>
 							</div>
 							{usesNativePicker && !onSelectedPathsChange ? null : (
 								<Button
@@ -243,6 +248,31 @@ function formatFileSize(bytes: number): string {
 	const size = bytes / 1024 ** unitIndex;
 
 	return `${size.toFixed(size >= 10 || unitIndex === 0 ? 0 : 1)} ${units[unitIndex]}`;
+}
+
+function FileTextTooltip({
+	value,
+	className,
+}: {
+	value: string;
+	className?: string;
+}): React.JSX.Element {
+	return (
+		<Tooltip>
+			<TooltipTrigger
+				closeOnClick={false}
+				className={cn(
+					"block max-w-full truncate border-0 bg-transparent p-0 text-left font-inherit leading-inherit text-inherit outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+					className,
+				)}
+			>
+				{value}
+			</TooltipTrigger>
+			<TooltipContent align="start" className="max-w-sm break-all">
+				{value}
+			</TooltipContent>
+		</Tooltip>
+	);
 }
 
 function getFileNameFromPath(path: string): string {
