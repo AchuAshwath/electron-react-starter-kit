@@ -1,4 +1,11 @@
 import { contextBridge, ipcRenderer } from "electron";
+import { dialogIpcChannels } from "../main/dialog/dialog.channels";
+import type {
+	OpenFileDialogInput,
+	OpenFileDialogResult,
+	SaveFileDialogInput,
+	SaveFileDialogResult,
+} from "../main/dialog/dialog.types";
 import { settingsUpdatedChannel } from "../main/settings/settings.channels";
 import type {
 	UserSettings,
@@ -55,6 +62,13 @@ const api = {
 				ipcRenderer.removeListener("theme:updated", listener);
 			};
 		},
+	},
+
+	dialog: {
+		openFile: (input?: OpenFileDialogInput): Promise<OpenFileDialogResult> =>
+			ipcRenderer.invoke(dialogIpcChannels.openFile, input),
+		saveFile: (input?: SaveFileDialogInput): Promise<SaveFileDialogResult> =>
+			ipcRenderer.invoke(dialogIpcChannels.saveFile, input),
 	},
 };
 
