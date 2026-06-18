@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
 	OpenFileDialogInput,
+	OpenFileDialogResult,
 	SaveFileDialogInput,
 } from "../../../../main/dialog/dialog.types";
 
@@ -54,6 +55,20 @@ function mergeFilePaths(currentPaths: string[], nextPaths: string[]): string[] {
 		0,
 		maxDemoFiles,
 	);
+}
+
+export function getSelectedFilesMessage(fileCount: number): string {
+	return `${fileCount} file${fileCount === 1 ? "" : "s"} added`;
+}
+
+export function getOpenFileDialogSuccessMessage(
+	result: OpenFileDialogResult,
+): string {
+	if (result.canceled || result.filePaths.length === 0) {
+		return "No files selected";
+	}
+
+	return getSelectedFilesMessage(result.filePaths.length);
 }
 
 export function useSaveFileDialog() {
