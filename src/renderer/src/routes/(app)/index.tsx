@@ -1,20 +1,29 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { toast } from "sonner";
 import electronLogo from "../../assets/electron.svg";
 import { Badge } from "../../components/ui/badge";
 import { FileUpload } from "../../components/ui/file-upload";
 import {
+	getOpenFileDialogSuccessMessage,
+	getSelectedFilesMessage,
 	useDemoSelectedFilePaths,
 	useOpenFileDialog,
 } from "../../core/dialog/dialog.hooks";
+import { useShowNotification } from "../../core/notifications/notification.hooks";
 import { useSystemInfo } from "../../core/system/system.hooks";
 
 export const Route = createFileRoute("/(app)/")({
 	component: HomeRoute,
 });
 
+type OpenFileDialogResult = Awaited<
+	ReturnType<Window["api"]["dialog"]["openFile"]>
+>;
+
 function HomeRoute(): React.JSX.Element {
 	const systemInfoQuery = useSystemInfo();
 	const openFileDialog = useOpenFileDialog();
+	const showNotification = useShowNotification();
 	const {
 		addSelectedFilePaths,
 		maxFiles,
@@ -24,16 +33,38 @@ function HomeRoute(): React.JSX.Element {
 	const systemInfo = systemInfoQuery.data;
 
 	async function chooseFile(): Promise<void> {
-		const result = await openFileDialog.mutateAsync({
-			title: "Choose files",
-			buttonLabel: "Choose",
-			multiple: true,
-			filters: [{ name: "All files", extensions: ["*"] }],
-		});
+		let result: Awaited<ReturnType<typeof openFileDialog.mutateAsync>>;
 
-		if (!result.canceled) {
-			addSelectedFilePaths(result.filePaths);
+		try {
+			result = await openFileDialog.mutateAsync({
+				title: "Choose files",
+				buttonLabel: "Choose",
+				multiple: true,
+				filters: [{ name: "All files", extensions: ["*"] }],
+			});
+		} catch {
+			toast.error("Could not open file picker");
+			return;
 		}
+
+		if (result.canceled || result.filePaths.length === 0) {
+			return;
+		}
+
+		addSelectedFilePaths(result.filePaths);
+
+		const checkedResult = await toast
+			.promise(checkSelectedFiles(result), {
+				loading: "Checking selected files...",
+				success: getOpenFileDialogSuccessMessage,
+				error: "Could not check selected files",
+			})
+			.unwrap();
+
+		showNotification.mutate({
+			title: "File check complete",
+			body: getOpenFileDialogSuccessMessage(checkedResult),
+		});
 	}
 
 	function addDroppedFiles(files: File[]): void {
@@ -42,6 +73,15 @@ function HomeRoute(): React.JSX.Element {
 			.filter((path) => path.length > 0);
 
 		addSelectedFilePaths(filePaths);
+		showFilesSelectedToast(filePaths.length);
+	}
+
+	function showFilesSelectedToast(fileCount: number): void {
+		if (fileCount === 0) {
+			return;
+		}
+
+		toast.success(getSelectedFilesMessage(fileCount));
 	}
 
 	return (
@@ -113,6 +153,14 @@ function HomeRoute(): React.JSX.Element {
 			</div>
 		</main>
 	);
+}
+
+async function checkSelectedFiles(
+	result: OpenFileDialogResult,
+): Promise<OpenFileDialogResult> {
+	await new Promise((resolve) => setTimeout(resolve, 2000));
+
+	return result;
 }
 
 function GitHubMark(): React.JSX.Element {

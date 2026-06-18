@@ -1,14 +1,19 @@
 import { createFileRoute } from "@tanstack/react-router";
-import {
-	CheckIcon,
-	LaptopIcon,
-	type LucideIcon,
-	Maximize2Icon,
-	MonitorIcon,
-	MoonIcon,
-	SunIcon,
-} from "lucide-react";
+import { type LucideIcon, MonitorIcon, MoonIcon, SunIcon } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "../../components/ui/button";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "../../components/ui/select";
+import {
+	useNotificationPermission,
+	useSetDesktopNotificationsEnabled,
+	useShowNotification,
+} from "../../core/notifications/notification.hooks";
 import {
 	useSettings,
 	useSettingsUpdatedListener,
@@ -16,7 +21,6 @@ import {
 } from "../../core/settings/settings.hooks";
 import type { ThemePreference } from "../../core/theme/theme.types";
 import { useThemeContext } from "../../core/theme/theme-provider";
-import { cn } from "../../lib/utils";
 
 export const Route = createFileRoute("/(app)/settings")({
 	component: SettingsRoute,
@@ -91,6 +95,9 @@ function SettingsRoute(): React.JSX.Element {
 	const settingsQuery = useSettings();
 	const updateSettings = useUpdateSettings();
 	const { theme, setTheme, isChangingTheme } = useThemeContext();
+	const notificationPermissionQuery = useNotificationPermission();
+	const setDesktopNotifications = useSetDesktopNotificationsEnabled();
+	const showNotification = useShowNotification();
 
 	useSettingsUpdatedListener();
 
@@ -98,65 +105,102 @@ function SettingsRoute(): React.JSX.Element {
 	const selectedWindowSizeId =
 		findMatchingWindowSizePreset(selectedWindowBounds);
 	const isUpdatingWindowSize = updateSettings.isPending;
+	const notificationPermission = notificationPermissionQuery.data;
+	const notificationsSupported = notificationPermission?.supported !== false;
+	const desktopNotificationsEnabled =
+		notificationPermission?.desktopEnabled === true;
+	const isUpdatingNotifications =
+		notificationPermissionQuery.isLoading ||
+		setDesktopNotifications.isPending ||
+		showNotification.isPending;
+
+	async function setNotificationsEnabled(enabled: boolean): Promise<void> {
+		let permission: Awaited<
+			ReturnType<typeof setDesktopNotifications.mutateAsync>
+		>;
+
+		try {
+			permission = await setDesktopNotifications.mutateAsync(enabled);
+		} catch {
+			toast.error("Could not update notification preference.");
+			return;
+		}
+
+		if (!permission.supported) {
+			toast.error("Desktop notifications are not supported here.");
+			return;
+		}
+
+		if (enabled) {
+			try {
+				await showNotification.mutateAsync({
+					title: "Desktop notifications enabled",
+					body: "Native notifications are ready for background updates.",
+					showWhenFocused: true,
+				});
+			} catch {
+				// The preference is already saved; the confirmation notification is best-effort.
+			}
+			return;
+		}
+
+		toast.success("Desktop notifications disabled");
+	}
 
 	return (
-		<div className="mx-auto flex w-full max-w-4xl flex-col gap-6 px-6 py-8">
-			<div className="flex flex-col gap-1">
-				<h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-				<p className="max-w-2xl text-sm text-muted-foreground">
-					Tune the starter kit defaults that are already backed by the main
-					process settings store.
-				</p>
+		<div className="mx-auto flex w-full max-w-3xl flex-col px-6 py-8">
+			<div className="divide-y divide-border rounded-xl border border-border bg-background shadow-sm">
+				<SettingsRow
+					title="Appearance"
+					description="Choose how the renderer resolves the app theme."
+				>
+					<ThemeSegmentedControl
+						disabled={isChangingTheme}
+						value={theme?.preference ?? "system"}
+						onChange={setTheme}
+					/>
+				</SettingsRow>
+
+				<SettingsRow
+					title="Window size"
+					description={
+						selectedWindowBounds
+							? `${selectedWindowBounds.width} x ${selectedWindowBounds.height}`
+							: "Choose the preferred launch size."
+					}
+				>
+					<WindowSizeSelect
+						disabled={settingsQuery.isPending || isUpdatingWindowSize}
+						value={selectedWindowSizeId}
+						onChange={(presetId) => {
+							const preset = windowSizePresets.find(
+								(option) => option.id === presetId,
+							);
+
+							if (preset) {
+								updateSettings.mutate({ windowBounds: preset.bounds });
+							}
+						}}
+					/>
+				</SettingsRow>
+
+				<SettingsRow
+					title="Desktop notifications"
+					description={
+						notificationsSupported
+							? "Use native alerts for background updates."
+							: "Unavailable on this system."
+					}
+				>
+					<NotificationPreference
+						enabled={desktopNotificationsEnabled}
+						isBusy={isUpdatingNotifications}
+						isSupported={notificationsSupported}
+						onDisable={() => void setNotificationsEnabled(false)}
+						onEnable={() => void setNotificationsEnabled(true)}
+					/>
+				</SettingsRow>
 			</div>
-
-			<SettingsSection
-				title="Appearance"
-				description="Choose how the renderer should resolve the app theme."
-			>
-				<OptionGrid columns="sm:grid-cols-3" label="Appearance">
-					{themeOptions.map(({ value, label, helper, icon: Icon }) => {
-						const isSelected = theme?.preference === value;
-
-						return (
-							<OptionButton
-								key={value}
-								icon={Icon}
-								label={label}
-								helper={helper}
-								selected={isSelected}
-								disabled={isChangingTheme}
-								onClick={() => setTheme(value)}
-							/>
-						);
-					})}
-				</OptionGrid>
-			</SettingsSection>
-
-			<SettingsSection
-				title="Window Size"
-				description="Resize this window and remember the latest size."
-				action={<Maximize2Icon className="h-4 w-4 text-muted-foreground" />}
-			>
-				<OptionGrid columns="sm:grid-cols-2" label="Window size">
-					{windowSizePresets.map((preset) => {
-						const isSelected = selectedWindowSizeId === preset.id;
-
-						return (
-							<OptionButton
-								key={preset.id}
-								icon={LaptopIcon}
-								label={preset.label}
-								helper={`${preset.bounds.width} x ${preset.bounds.height} - ${preset.helper}`}
-								selected={isSelected}
-								disabled={settingsQuery.isPending || isUpdatingWindowSize}
-								onClick={() =>
-									updateSettings.mutate({ windowBounds: preset.bounds })
-								}
-							/>
-						);
-					})}
-				</OptionGrid>
-			</SettingsSection>
 		</div>
 	);
 }
@@ -178,101 +222,157 @@ function findMatchingWindowSizePreset(
 	})?.id;
 }
 
-function SettingsSection({
+function SettingsRow({
 	title,
 	description,
-	action,
 	children,
 }: {
 	title: string;
 	description: string;
-	action?: React.ReactNode;
 	children: React.ReactNode;
 }): React.JSX.Element {
 	return (
-		<section className="flex flex-col gap-3">
-			<div className="flex items-start justify-between gap-3">
-				<div className="flex flex-col gap-1">
-					<h2 className="text-base font-medium leading-snug">{title}</h2>
-					<p className="text-sm text-muted-foreground">{description}</p>
-				</div>
-				{action}
+		<section className="grid gap-3 p-4 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:gap-6">
+			<div className="min-w-0">
+				<h2 className="text-sm font-medium leading-none">{title}</h2>
+				<p className="mt-1 text-sm text-muted-foreground">{description}</p>
 			</div>
-			{children}
+			<div className="flex min-w-0 sm:justify-end">{children}</div>
 		</section>
 	);
 }
 
-function OptionGrid({
-	children,
-	columns,
-	label,
+function ThemeSegmentedControl({
+	disabled,
+	onChange,
+	value,
 }: {
-	children: React.ReactNode;
-	columns: string;
-	label: string;
+	disabled: boolean;
+	onChange: (value: ThemePreference) => void;
+	value: ThemePreference;
 }): React.JSX.Element {
 	return (
-		<fieldset className={cn("grid gap-2", columns)}>
-			<legend className="sr-only">{label}</legend>
-			{children}
+		<fieldset className="flex rounded-lg border border-border bg-muted/40 p-0.5">
+			<legend className="sr-only">Appearance</legend>
+			{themeOptions.map(({ value: optionValue, label, icon: Icon }) => {
+				const isSelected = value === optionValue;
+
+				return (
+					<Button
+						key={optionValue}
+						type="button"
+						variant={isSelected ? "default" : "ghost"}
+						size="sm"
+						className="size-9 rounded-md p-0"
+						disabled={disabled}
+						aria-pressed={isSelected}
+						aria-label={label}
+						title={label}
+						onClick={() => onChange(optionValue)}
+					>
+						<Icon aria-hidden="true" />
+						<span className="sr-only">{label}</span>
+					</Button>
+				);
+			})}
 		</fieldset>
 	);
 }
 
-function OptionButton({
-	icon: Icon,
-	label,
-	helper,
-	selected,
+function WindowSizeSelect({
 	disabled,
-	onClick,
+	onChange,
+	value,
 }: {
-	icon: LucideIcon;
-	label: string;
-	helper: string;
-	selected: boolean;
-	disabled?: boolean;
-	onClick: () => void;
+	disabled: boolean;
+	onChange: (presetId: string) => void;
+	value: string | undefined;
 }): React.JSX.Element {
 	return (
-		<Button
-			type="button"
-			variant="outline"
-			size="lg"
-			className={cn(
-				"group min-h-14 justify-start gap-2.5 whitespace-normal border-border bg-background px-3 py-2 text-left shadow-none hover:border-border hover:bg-muted/50",
-				selected
-					? "border-primary/60 bg-primary/5 text-foreground ring-1 ring-primary/20 hover:border-primary/60 hover:bg-primary/5"
-					: "text-muted-foreground hover:text-foreground",
-			)}
+		<Select
+			value={getWindowSizeSelectValue(value)}
+			onValueChange={(selectedValue) => {
+				const preset = windowSizePresets.find(
+					(option) => getWindowSizeSelectValue(option.id) === selectedValue,
+				);
+
+				if (preset) {
+					onChange(preset.id);
+				}
+			}}
 			disabled={disabled}
-			aria-pressed={selected}
-			onClick={onClick}
 		>
-			<Icon
-				aria-hidden="true"
-				data-icon="inline-start"
-				className={cn(
-					"text-muted-foreground group-hover:text-foreground",
-					selected && "text-primary group-hover:text-primary",
+			<SelectTrigger className="h-9 w-full min-w-0 sm:w-64">
+				<SelectValue placeholder="Choose window size" />
+			</SelectTrigger>
+			<SelectContent align="end">
+				{value ? null : (
+					<SelectItem value={getWindowSizeSelectValue(undefined)}>
+						Current custom size
+					</SelectItem>
 				)}
-			/>
-			<span className="flex min-w-0 flex-1 flex-col gap-1">
-				<span className="flex min-w-0 items-start justify-between gap-3">
-					<span className="truncate text-sm font-medium leading-none">
-						{label}
-					</span>
-				</span>
-				<span className="truncate text-xs font-normal leading-none text-muted-foreground">
-					{helper}
-				</span>
-			</span>
-			{selected ? (
-				<span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground">
-					<CheckIcon aria-hidden="true" className="size-3" />
-				</span>
-			) : null}
-		</Button>
+				{windowSizePresets.map((preset) => (
+					<SelectItem
+						key={preset.id}
+						value={getWindowSizeSelectValue(preset.id)}
+					>
+						{preset.label} - {preset.bounds.width} x {preset.bounds.height}
+					</SelectItem>
+				))}
+			</SelectContent>
+		</Select>
+	);
+}
+
+function getWindowSizeSelectValue(presetId: string | undefined): string {
+	const preset = windowSizePresets.find((option) => option.id === presetId);
+
+	if (!preset) {
+		return "Current custom size";
+	}
+
+	return `${preset.label} - ${preset.bounds.width} x ${preset.bounds.height}`;
+}
+
+function NotificationPreference({
+	enabled,
+	isBusy,
+	isSupported,
+	onDisable,
+	onEnable,
+}: {
+	enabled: boolean;
+	isBusy: boolean;
+	isSupported: boolean;
+	onDisable: () => void;
+	onEnable: () => void;
+}): React.JSX.Element {
+	return (
+		<div className="flex w-full justify-start sm:w-auto sm:justify-end">
+			<div className="flex rounded-lg border border-border bg-muted/40 p-0.5">
+				<Button
+					type="button"
+					variant={enabled ? "default" : "ghost"}
+					size="sm"
+					className="h-8 rounded-md px-3"
+					disabled={!isSupported || isBusy}
+					aria-pressed={enabled}
+					onClick={onEnable}
+				>
+					On
+				</Button>
+				<Button
+					type="button"
+					variant={enabled ? "ghost" : "default"}
+					size="sm"
+					className="h-8 rounded-md px-3"
+					disabled={isBusy}
+					aria-pressed={!enabled}
+					onClick={onDisable}
+				>
+					Off
+				</Button>
+			</div>
+		</div>
 	);
 }

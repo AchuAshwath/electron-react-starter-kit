@@ -4,6 +4,8 @@ import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createTestQueryClient } from "../../test/render";
 import {
+	getOpenFileDialogSuccessMessage,
+	getSelectedFilesMessage,
 	useDemoSelectedFilePaths,
 	useOpenFileDialog,
 	useSaveFileDialog,
@@ -117,5 +119,22 @@ describe("dialog hooks", () => {
 				"C:\\tmp\\summary.txt",
 			]);
 		});
+	});
+
+	it("builds file picker toast messages", () => {
+		expect(getSelectedFilesMessage(1)).toBe("1 file added");
+		expect(getSelectedFilesMessage(3)).toBe("3 files added");
+		expect(
+			getOpenFileDialogSuccessMessage({
+				canceled: false,
+				filePaths: ["C:\\tmp\\notes.txt", "C:\\tmp\\report.txt"],
+			}),
+		).toBe("2 files added");
+		expect(
+			getOpenFileDialogSuccessMessage({
+				canceled: true,
+				filePaths: [],
+			}),
+		).toBe("No files selected");
 	});
 });

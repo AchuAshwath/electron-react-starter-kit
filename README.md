@@ -43,7 +43,8 @@ Discover the core stack driving this starter template:
 * 🎨 **Modern UI Foundation**: Tailwind CSS v4, shadcn/ui-style primitives, lucide icons, and shared utilities are preconfigured.
 * 🌓 **Desktop-Aware Theme Switching**: Light, dark, and system themes are persisted through main-process settings and resolved with Electron `nativeTheme`.
 * 💾 **Validated User Settings**: `electron-store` persists normal preferences, while Zod validates settings updates at the IPC boundary.
-* **Native File Upload Demo**: Electron open/save dialogs, drag-and-drop path handling, shadcn-style file rows, and session-scoped upload state are wired through preload-safe APIs.
+* **Native File Upload Demo**: Electron open/save dialogs, drag-and-drop path handling, shadcn-style file rows, session-scoped upload state, and post-selection promise feedback are wired through preload-safe APIs.
+* **Desktop Notification Preferences**: Native notification support checks, persisted opt-in settings, focus-aware delivery, and renderer hooks are exposed through the typed preload API.
 * 🧪 **Testing Setup**: Vitest, Testing Library, jsdom, coverage, and local test helpers are ready for main-process services, query factories, hooks, and components.
 * 🛠 **Git Guardrails & Hooks**: Husky, lint-staged, and commitlint enforce formatting, linting, and Conventional Commits.
 * 🤖 **Continuous Integration**: GitHub Actions verifies install, lint, format, typecheck, tests, and production build.
@@ -63,6 +64,7 @@ Discover the core stack driving this starter template:
 │   ├── main/
 │   │   ├── index.ts             # Electron lifecycle, BrowserWindow, and IPC registration
 │   │   ├── ipc/                 # Typed IPC handler registrar, validation, and safe errors
+│   │   ├── notifications/       # Native notification settings, service, and IPC handlers
 │   │   ├── settings/            # Zod-validated electron-store settings module
 │   │   └── theme/               # nativeTheme integration and theme IPC handlers
 │   ├── preload/
@@ -77,6 +79,8 @@ Discover the core stack driving this starter template:
 │           ├── assets/          # Global CSS and static renderer assets
 │           ├── components/      # Shared UI and feature components
 │           ├── core/
+│           │   ├── dialog/      # Native file dialog hooks and upload feedback helpers
+│           │   ├── notifications/ # Desktop notification hooks
 │           │   ├── settings/    # Settings queries and hooks
 │           │   ├── system/      # System info queries and hooks
 │           │   └── theme/       # Theme provider, hooks, queries, and DOM helpers
@@ -288,9 +292,37 @@ Theme tests live beside the files they cover: main-process service tests cover `
 
 The starter kit includes a complete native file upload demo that keeps Electron-only capabilities outside the renderer. The main process owns `dialog.showOpenDialog()` and `dialog.showSaveDialog()` through typed IPC handlers in `src/main/dialog`, preload exposes narrow `window.api.dialog` and `window.api.files` methods, and the renderer consumes those APIs through `src/renderer/src/core/dialog` hooks.
 
-The home route demonstrates both selection paths: the Choose button opens Electron's native multi-file dialog, while drag-and-drop receives browser `File` objects and asks preload to resolve safe file paths with `webUtils.getPathForFile(file)`. Selected paths are stored in the TanStack Query cache for the current app session, so navigating away and back preserves the demo state without writing file selections to `electron-store`. Persistent recent files should be added as a separate feature when an app actually needs that behavior.
+The home route demonstrates both selection paths: the Choose button opens Electron's native multi-file dialog, while drag-and-drop receives browser `File` objects and asks preload to resolve safe file paths with `webUtils.getPathForFile(file)`. After native selection, the demo runs a small promise-based file check with Sonner feedback, then asks the main process to send a native completion notification only when desktop notifications are enabled and the app is not focused.
+
+Selected paths are stored in the TanStack Query cache for the current app session, so navigating away and back preserves the demo state without writing file selections to `electron-store`. Persistent recent files should be added as a separate feature when an app actually needs that behavior.
 
 The reusable `FileUpload` component supports single or multiple files, max-file limits, removable path rows, long-path truncation, and shadcn/Base UI tooltips for inspecting full file names and paths.
+
+---
+
+## Native Notifications
+
+Native notifications are handled as a main-process platform API rather than a renderer concern. The notification module checks `Notification.isSupported()`, stores the user's desktop notification preference in the normal settings store, and exposes typed preload methods through `window.api.notifications`.
+
+The Settings route presents notifications as a simple form preference. Turning notifications on persists the opt-in and sends a one-time OS confirmation notification with `showWhenFocused: true`; regular app notifications are focus-aware and skip OS delivery while the Electron window is focused. This keeps immediate feedback inside the app with Sonner and reserves native notifications for background updates.
+
+```mermaid
+sequenceDiagram
+    participant Settings as Settings UI
+    participant Hook as Notification Hook
+    participant Bridge as Preload API
+    participant Main as Main Notification Service
+    participant OS as Desktop Notification
+
+    Settings->>Hook: enable desktop notifications
+    Hook->>Bridge: window.api.notifications.setDesktopEnabled(true)
+    Bridge->>Main: notifications:set-desktop-enabled
+    Main-->>Bridge: persisted permission state
+    Settings->>Hook: send confirmation
+    Hook->>Bridge: window.api.notifications.show({ showWhenFocused: true })
+    Bridge->>Main: notifications:show
+    Main->>OS: new Notification(...).show()
+```
 
 ---
 
@@ -361,7 +393,8 @@ The roadmap is ordered so each milestone builds on the previous one. Each item s
 
 - [ ] **Add SafeStorage-backed secrets**: Store tokens, API keys, and other sensitive values through Electron `safeStorage`, separate from normal `electron-store` preferences.
 - [x] **Add file picker/save dialog APIs**: Expose typed main-process wrappers for open/save dialogs through preload, support drag-and-drop file path resolution, and document the recommended renderer usage.
-- [ ] **Add native notifications module with permission UI**: Provide a typed notification API, default-deny permission policy, renderer hooks, and user-facing permission/request states.
+- [ ] **Add imported file storage workflow**: Provide a hybrid file-upload path that can copy selected files into app-owned storage under `app.getPath("userData")`, persist metadata in a dedicated store, verify missing/moved files, and keep simple file selection separate from durable app state.
+- [x] **Add native notifications module with permission UI**: Provide a typed notification API, persisted user opt-in, renderer hooks, focus-aware OS delivery, and a settings-based permission control.
 
 ### Phase 4: Auth Foundation
 

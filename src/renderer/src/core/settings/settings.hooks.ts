@@ -83,5 +83,11 @@ function mergeUserSettingsPatch(
 					...patch.startup,
 				}
 			: settings.startup,
+		notifications: patch.notifications
+			? {
+					...settings.notifications,
+					...patch.notifications,
+				}
+			: settings.notifications,
 	};
 }

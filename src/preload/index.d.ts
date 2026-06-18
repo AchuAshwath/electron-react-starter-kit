@@ -5,6 +5,11 @@ import type {
 	SaveFileDialogResult,
 } from "../main/dialog/dialog.types.ts";
 import type {
+	NotificationPermissionState,
+	ShowNotificationInput,
+	ShowNotificationResult,
+} from "../main/notifications/notifications.types.ts";
+import type {
 	UserSettings,
 	UserSettingsPatch,
 } from "../main/settings/settings.types.ts";
@@ -44,6 +49,15 @@ declare global {
 				saveFile: (
 					input?: SaveFileDialogInput,
 				) => Promise<SaveFileDialogResult>;
+			};
+
+			notifications: {
+				getPermission: () => Promise<NotificationPermissionState>;
+				requestPermission: () => Promise<NotificationPermissionState>;
+				setDesktopEnabled: (
+					desktopEnabled: boolean,
+				) => Promise<NotificationPermissionState>;
+				show: (input: ShowNotificationInput) => Promise<ShowNotificationResult>;
 			};
 
 			files: {
