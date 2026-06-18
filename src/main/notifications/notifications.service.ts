@@ -1,4 +1,4 @@
-import { Notification } from "electron";
+import { BrowserWindow, Notification } from "electron";
 import { getSettings, updateSettings } from "../settings/settings.store";
 import type {
 	NotificationPermissionState,
@@ -49,6 +49,13 @@ export function showNotification(
 	if (!permission.desktopEnabled) {
 		return {
 			reason: "disabled",
+			shown: false,
+		};
+	}
+
+	if (!input.showWhenFocused && BrowserWindow.getFocusedWindow()) {
+		return {
+			reason: "focused",
 			shown: false,
 		};
 	}

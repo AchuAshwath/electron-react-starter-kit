@@ -11,6 +11,7 @@ export const desktopNotificationsEnabledSchema = z.boolean();
 export const showNotificationInputSchema = z.object({
 	title: z.string().trim().min(1).max(80),
 	body: z.string().trim().max(180).optional(),
+	showWhenFocused: z.boolean().optional(),
 });
 
 export type NotificationPermissionStatus = z.infer<
@@ -26,6 +27,6 @@ export type NotificationPermissionState = {
 export type ShowNotificationInput = z.infer<typeof showNotificationInputSchema>;
 
 export type ShowNotificationResult = {
-	reason?: "disabled" | "unsupported";
+	reason?: "disabled" | "focused" | "unsupported";
 	shown: boolean;
 };

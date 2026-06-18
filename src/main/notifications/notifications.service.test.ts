@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { defaultSettings } from "../settings/settings.types";
 
 const {
+	getFocusedWindowMock,
 	getSettingsMock,
 	isSupportedMock,
 	notificationConstructorMock,
@@ -9,6 +10,7 @@ const {
 	showMock,
 	updateSettingsMock,
 } = vi.hoisted(() => ({
+	getFocusedWindowMock: vi.fn(),
 	getSettingsMock: vi.fn(),
 	isSupportedMock: vi.fn(),
 	notificationConstructorMock: vi.fn(),
@@ -30,6 +32,9 @@ vi.mock("electron", () => {
 	NotificationMock.isSupported = isSupportedMock;
 
 	return {
+		BrowserWindow: {
+			getFocusedWindow: getFocusedWindowMock,
+		},
 		Notification: NotificationMock,
 	};
 });
@@ -51,6 +56,7 @@ describe("notifications service", () => {
 	beforeEach(() => {
 		vi.resetAllMocks();
 		notificationInstances.length = 0;
+		getFocusedWindowMock.mockReturnValue(undefined);
 		getSettingsMock.mockReturnValue(defaultSettings);
 	});
 
@@ -113,5 +119,46 @@ describe("notifications service", () => {
 			},
 		]);
 		expect(showMock).toHaveBeenCalledTimes(1);
+	});
+
+	it("skips native notifications while the app is focused by default", () => {
+		isSupportedMock.mockReturnValue(true);
+		getFocusedWindowMock.mockReturnValue({});
+		getSettingsMock.mockReturnValue({
+			...defaultSettings,
+			notifications: {
+				desktopEnabled: true,
+			},
+		});
+
+		expect(showNotification({ title: "Export complete" })).toEqual({
+			reason: "focused",
+			shown: false,
+		});
+		expect(notificationConstructorMock).not.toHaveBeenCalled();
+	});
+
+	it("can show an explicit test notification while the app is focused", () => {
+		isSupportedMock.mockReturnValue(true);
+		getFocusedWindowMock.mockReturnValue({});
+		getSettingsMock.mockReturnValue({
+			...defaultSettings,
+			notifications: {
+				desktopEnabled: true,
+			},
+		});
+
+		expect(
+			showNotification({
+				showWhenFocused: true,
+				title: "Notifications are ready",
+			}),
+		).toEqual({
+			shown: true,
+		});
+		expect(notificationConstructorMock).toHaveBeenCalledWith({
+			body: undefined,
+			title: "Notifications are ready",
+		});
 	});
 });
