@@ -44,7 +44,12 @@ export function restoreWindowBounds({
 		return savedState;
 	}
 
-	return centerWindowOnDisplay(defaultBounds, getPrimaryWorkArea(displays));
+	const fallbackBounds =
+		savedBounds.x === undefined || savedBounds.y === undefined
+			? savedBounds
+			: defaultBounds;
+
+	return centerWindowOnDisplay(fallbackBounds, getPrimaryWorkArea(displays));
 }
 
 export function applyPreferredWindowBounds(

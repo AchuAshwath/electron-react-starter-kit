@@ -42,7 +42,7 @@ describe("restoreWindowBounds", () => {
 		});
 	});
 
-	it("centers default bounds when saved position is missing", () => {
+	it("centers saved size when saved position is missing", () => {
 		expect(
 			restoreWindowBounds({
 				defaultBounds,
@@ -53,10 +53,10 @@ describe("restoreWindowBounds", () => {
 				},
 			}),
 		).toEqual({
-			x: 510,
-			y: 185,
-			width: 900,
-			height: 670,
+			x: 410,
+			y: 160,
+			width: 1100,
+			height: 720,
 			isMaximized: false,
 		});
 	});
