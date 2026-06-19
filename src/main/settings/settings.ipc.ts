@@ -4,6 +4,7 @@ import {
 	applyThemePreference,
 	broadcastThemeState,
 } from "../theme/theme.service";
+import { applyPreferredWindowBounds } from "../window/window-state";
 import { settingsUpdatedChannel } from "./settings.channels";
 import { getSettings, resetSettings, updateSettings } from "./settings.store";
 import { type UserSettings, userSettingsPatchSchema } from "./settings.types";
@@ -46,10 +47,10 @@ export function registerSettingsIpcHandlers(
 			if (parsedPatch.windowBounds) {
 				const window = BrowserWindow.fromWebContents(event.sender);
 
-				window?.setSize(
-					settings.windowBounds.width,
-					settings.windowBounds.height,
-				);
+				if (window) {
+					applyPreferredWindowBounds(window, settings.windowBounds);
+				}
+
 				broadcastSettings(settings);
 			}
 

@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { electronApp, is, optimizer } from "@electron-toolkit/utils";
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, BrowserWindow, ipcMain, screen } from "electron";
 import icon from "../../resources/icon.png?asset";
 import { registerDialogIpcHandlers } from "./dialog/dialog.ipc";
 import { createIpcHandlerRegistrar } from "./ipc/ipc-handler";
@@ -17,11 +17,21 @@ import {
 	registerSettingsIpcHandlers,
 } from "./settings/settings.ipc";
 import { getSettings, updateSettings } from "./settings/settings.store";
+import { defaultSettings } from "./settings/settings.types";
 import { registerThemeIpcHandlers } from "./theme/theme.ipc";
 import { syncNativeThemeFromSettings } from "./theme/theme.service";
+import {
+	registerWindowStatePersistence,
+	restoreWindowBounds,
+} from "./window/window-state";
 
 function createWindow(): void {
 	const settings = getSettings();
+	const restoredWindowBounds = restoreWindowBounds({
+		defaultBounds: defaultSettings.windowBounds,
+		displays: screen.getAllDisplays().map((display) => display.workArea),
+		savedBounds: settings.windowBounds,
+	});
 	const initialThemeState = syncNativeThemeFromSettings();
 	const initialThemeSearch = new URLSearchParams({
 		themePreference: initialThemeState.preference,
@@ -31,8 +41,10 @@ function createWindow(): void {
 
 	// Create the browser window.
 	const mainWindow = new BrowserWindow({
-		width: settings.windowBounds.width,
-		height: settings.windowBounds.height,
+		x: restoredWindowBounds.x,
+		y: restoredWindowBounds.y,
+		width: restoredWindowBounds.width,
+		height: restoredWindowBounds.height,
 		show: false,
 		autoHideMenuBar: true,
 		...(process.platform === "linux" ? { icon } : {}),
@@ -41,12 +53,20 @@ function createWindow(): void {
 		),
 	});
 
+	if (restoredWindowBounds.isMaximized) {
+		mainWindow.maximize();
+	}
+
 	mainWindow.on("ready-to-show", () => {
 		mainWindow.show();
 	});
 
 	registerNavigationHandlers(mainWindow);
-	registerWindowBoundsPersistence(mainWindow);
+	registerWindowStatePersistence(mainWindow, (windowBounds) => {
+		const settings = updateSettings({ windowBounds });
+
+		broadcastSettings(settings);
+	});
 
 	// HMR for renderer base on electron-vite cli.
 	// Load the remote URL for development or the local html file for production.
@@ -67,28 +87,6 @@ function createWindow(): void {
 			query: Object.fromEntries(initialThemeSearch),
 		});
 	}
-}
-
-function registerWindowBoundsPersistence(window: BrowserWindow): void {
-	let saveWindowBoundsTimer: ReturnType<typeof setTimeout> | undefined;
-
-	window.on("resize", () => {
-		if (saveWindowBoundsTimer) {
-			clearTimeout(saveWindowBoundsTimer);
-		}
-
-		saveWindowBoundsTimer = setTimeout(() => {
-			const [width, height] = window.getSize();
-			const settings = updateSettings({
-				windowBounds: {
-					width,
-					height,
-				},
-			});
-
-			broadcastSettings(settings);
-		}, 250);
-	});
 }
 
 // This method will be called when Electron has finished
