@@ -308,7 +308,7 @@ function WindowSizeSelect({
 			<SelectContent align="end">
 				{value ? null : (
 					<SelectItem value={getWindowSizeSelectValue(undefined)}>
-						Current custom size
+						Custom Size
 					</SelectItem>
 				)}
 				{windowSizePresets.map((preset) => (
@@ -328,7 +328,7 @@ function getWindowSizeSelectValue(presetId: string | undefined): string {
 	const preset = windowSizePresets.find((option) => option.id === presetId);
 
 	if (!preset) {
-		return "Current custom size";
+		return "Custom Size";
 	}
 
 	return `${preset.label} - ${preset.bounds.width} x ${preset.bounds.height}`;
