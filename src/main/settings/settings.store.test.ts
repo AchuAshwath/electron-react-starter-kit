@@ -56,6 +56,7 @@ describe("settings store", () => {
 		const settings = updateSettings({
 			theme: "dark",
 			windowBounds: {
+				x: 40,
 				width: 1200,
 			},
 		});
@@ -65,10 +66,35 @@ describe("settings store", () => {
 			theme: "dark",
 			windowBounds: {
 				...defaultSettings.windowBounds,
+				x: 40,
 				width: 1200,
 			},
 		});
 		expect(getSettings()).toEqual(settings);
+	});
+
+	it("preserves optional window state fields across partial updates", () => {
+		updateSettings({
+			windowBounds: {
+				x: 20,
+				y: 30,
+				isMaximized: true,
+			},
+		});
+
+		const settings = updateSettings({
+			windowBounds: {
+				width: 1280,
+			},
+		});
+
+		expect(settings.windowBounds).toEqual({
+			...defaultSettings.windowBounds,
+			x: 20,
+			y: 30,
+			width: 1280,
+			isMaximized: true,
+		});
 	});
 
 	it("resets persisted settings back to defaults", () => {
