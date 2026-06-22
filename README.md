@@ -28,6 +28,7 @@ Discover the core stack driving this starter template:
 | **Tailwind CSS** | ![Tailwind CSS](https://img.shields.io/badge/Tailwind--CSS-v4-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white) | Utility-first styling with the modern Tailwind v4 compilation |
 | **shadcn/ui** | ![shadcn/ui](https://img.shields.io/badge/shadcn%2Fui-components-000000?style=flat-square) | Accessible component primitives styled with Tailwind CSS |
 | **electron-store** | ![electron-store](https://img.shields.io/badge/electron--store-settings-47848F?style=flat-square&logo=electron&logoColor=white) | Main-process persistence for normal user preferences |
+| **electron-log** | ![electron-log](https://img.shields.io/badge/electron--log-observability-47848F?style=flat-square&logo=electron&logoColor=white) | Main-process file logging, lifecycle events, and production diagnostics |
 | **Zod** | ![Zod](https://img.shields.io/badge/Zod-validation-3068B7?style=flat-square) | Runtime validation for IPC payloads and settings contracts |
 | **Vitest** | ![Vitest](https://img.shields.io/badge/Vitest-tests-6E9F18?style=flat-square&logo=vitest&logoColor=white) | Unit and component testing for renderer and main-process modules |
 | **Biome** | ![Biome](https://img.shields.io/badge/Biome-v2-E36D4B?style=flat-square&logo=biome&logoColor=white) | Blazing fast replacement for ESLint, Prettier, and import organization |
@@ -44,6 +45,7 @@ Discover the core stack driving this starter template:
 * 🌓 **Desktop-Aware Theme Switching**: Light, dark, and system themes are persisted through main-process settings and resolved with Electron `nativeTheme`.
 * 💾 **Validated User Settings**: `electron-store` persists normal preferences, while Zod validates settings updates at the IPC boundary.
 * **Window State Persistence**: Window size, position, and maximized state are restored safely while off-screen saved bounds fall back to a centered default.
+* **Main-Process App Logging**: `electron-log` records app lifecycle events, important Electron process events, and unhandled main-process failures to production-friendly log files.
 * **Native File Upload Demo**: Electron open/save dialogs, drag-and-drop path handling, shadcn-style file rows, session-scoped upload state, and post-selection promise feedback are wired through preload-safe APIs.
 * **Desktop Notification Preferences**: Native notification support checks, persisted opt-in settings, focus-aware delivery, and renderer hooks are exposed through the typed preload API.
 * 🧪 **Testing Setup**: Vitest, Testing Library, jsdom, coverage, and local test helpers are ready for main-process services, query factories, hooks, and components.
@@ -65,6 +67,7 @@ Discover the core stack driving this starter template:
 │   ├── main/
 │   │   ├── index.ts             # Electron lifecycle, BrowserWindow, and IPC registration
 │   │   ├── ipc/                 # Typed IPC handler registrar, validation, and safe errors
+│   │   ├── logging/             # electron-log configuration, event logging, and app logger scopes
 │   │   ├── notifications/       # Native notification settings, service, and IPC handlers
 │   │   ├── settings/            # Zod-validated electron-store settings module
 │   │   ├── theme/               # nativeTheme integration and theme IPC handlers
@@ -336,6 +339,16 @@ sequenceDiagram
 
 ---
 
+## App Logging
+
+Main-process logging is configured with `electron-log` in `src/main/logging`. The logger initializes early in the Electron main process, writes durable `info` and higher logs to the platform log file, keeps console output verbose in development and quieter in production, and captures unhandled main-process errors without showing Electron's default error dialog.
+
+The app also enables `electron-log` event logging at `warn` level for important Electron events such as renderer process exits, child process failures, certificate errors, preload errors, and failed page loads. This gives production builds useful diagnostics without logging high-volume UI interactions or sensitive payloads.
+
+Do not log secrets, auth tokens, passwords, full document contents, unbounded IPC payloads, or user file contents. Prefer scoped lifecycle messages and small metadata objects such as platform, architecture, window dimensions, or feature status.
+
+---
+
 ## 📜 Available Scripts
 
 | Script | Command | Purpose |
@@ -426,7 +439,7 @@ Key design rule: file-based routing owns access control, TanStack Query owns ses
 
 - [x] **Add window state persistence**: Restore, validate, and save window bounds while preventing off-screen launches.
 - [ ] **Add error boundary and crash handling**: Provide renderer error boundaries, main-process uncaught error handling, and renderer crash/reload behavior.
-- [ ] **Add `electron-log`**: Centralize app logs for main, preload, and renderer paths with production-friendly file output.
+- [x] **Add `electron-log`**: Centralize main-process app logs, Electron warning events, and unhandled failure diagnostics with production-friendly file output.
 
 ### Phase 6: Distribution and Configuration
 
