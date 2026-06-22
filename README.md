@@ -341,11 +341,11 @@ sequenceDiagram
 
 ## App Logging
 
-Main-process logging is configured with `electron-log` in `src/main/logging`. The logger initializes early in the Electron main process, writes durable `info` and higher logs to the platform log file, keeps console output verbose in development and quieter in production, and captures unhandled main-process errors without showing Electron's default error dialog.
+Main-process logging is configured with `electron-log` in `src/main/logging`. The logger initializes early in the Electron main process, writes durable `info` and higher logs to a systematic ISO-timestamped platform log file, keeps colored console output verbose in development and quieter in production, and captures unhandled main-process errors without showing Electron's default error dialog.
 
 The app also enables `electron-log` event logging at `warn` level for important Electron events such as renderer process exits, child process failures, certificate errors, preload errors, and failed page loads. This gives production builds useful diagnostics without logging high-volume UI interactions or sensitive payloads.
 
-Do not log secrets, auth tokens, passwords, full document contents, unbounded IPC payloads, or user file contents. Prefer scoped lifecycle messages and small metadata objects such as platform, architecture, window dimensions, or feature status.
+Do not log secrets, auth tokens, passwords, full document contents, unbounded IPC payloads, file paths, or user file contents. Prefer scoped lifecycle messages and small metadata objects such as platform, architecture, window dimensions, feature status, theme changes, window-state restores/saves, and native notification delivery outcomes.
 
 ---
 
