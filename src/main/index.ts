@@ -30,6 +30,7 @@ function createWindow(): void {
 	const restoredWindowBounds = restoreWindowBounds({
 		defaultBounds: defaultSettings.windowBounds,
 		displays: screen.getAllDisplays().map((display) => display.workArea),
+		fallbackDisplay: screen.getPrimaryDisplay().workArea,
 		savedBounds: settings.windowBounds,
 	});
 	const initialThemeState = syncNativeThemeFromSettings();

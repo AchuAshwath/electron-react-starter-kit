@@ -19,6 +19,7 @@ export type RestoredWindowBounds = {
 type RestoreWindowBoundsOptions = {
 	defaultBounds: Pick<WindowBounds, "height" | "width">;
 	displays: DisplayWorkArea[];
+	fallbackDisplay: DisplayWorkArea;
 	savedBounds: WindowBounds;
 };
 
@@ -30,6 +31,7 @@ const saveWindowBoundsDelayMs = 250;
 export function restoreWindowBounds({
 	defaultBounds,
 	displays,
+	fallbackDisplay,
 	savedBounds,
 }: RestoreWindowBoundsOptions): RestoredWindowBounds {
 	const savedState = {
@@ -49,7 +51,7 @@ export function restoreWindowBounds({
 			? savedBounds
 			: defaultBounds;
 
-	return centerWindowOnDisplay(fallbackBounds, getPrimaryWorkArea(displays));
+	return centerWindowOnDisplay(fallbackBounds, fallbackDisplay);
 }
 
 export function applyPreferredWindowBounds(
@@ -163,15 +165,4 @@ function centerWindowOnDisplay(
 		height: defaultBounds.height,
 		isMaximized: false,
 	};
-}
-
-function getPrimaryWorkArea(displays: DisplayWorkArea[]): DisplayWorkArea {
-	return (
-		displays[0] ?? {
-			x: 0,
-			y: 0,
-			width: 1280,
-			height: 720,
-		}
-	);
 }

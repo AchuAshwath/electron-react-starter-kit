@@ -20,6 +20,13 @@ const primaryDisplay: DisplayWorkArea = {
 	height: 1040,
 };
 
+const secondaryDisplay: DisplayWorkArea = {
+	x: 1920,
+	y: 0,
+	width: 1920,
+	height: 1040,
+};
+
 describe("restoreWindowBounds", () => {
 	it("restores saved bounds when the window is visible on a current display", () => {
 		const savedBounds: WindowBounds = {
@@ -34,6 +41,7 @@ describe("restoreWindowBounds", () => {
 			restoreWindowBounds({
 				defaultBounds,
 				displays: [primaryDisplay],
+				fallbackDisplay: primaryDisplay,
 				savedBounds,
 			}),
 		).toEqual({
@@ -47,6 +55,7 @@ describe("restoreWindowBounds", () => {
 			restoreWindowBounds({
 				defaultBounds,
 				displays: [primaryDisplay],
+				fallbackDisplay: primaryDisplay,
 				savedBounds: {
 					width: 1100,
 					height: 720,
@@ -66,6 +75,7 @@ describe("restoreWindowBounds", () => {
 			restoreWindowBounds({
 				defaultBounds,
 				displays: [primaryDisplay],
+				fallbackDisplay: primaryDisplay,
 				savedBounds: {
 					x: 2600,
 					y: 100,
@@ -95,6 +105,7 @@ describe("restoreWindowBounds", () => {
 			restoreWindowBounds({
 				defaultBounds,
 				displays: [primaryDisplay],
+				fallbackDisplay: primaryDisplay,
 				savedBounds,
 			}),
 		).toEqual({
@@ -103,11 +114,34 @@ describe("restoreWindowBounds", () => {
 		});
 	});
 
-	it("uses a safe fallback display when display data is unavailable", () => {
+	it("centers fallback bounds on the explicit fallback display", () => {
+		expect(
+			restoreWindowBounds({
+				defaultBounds,
+				displays: [secondaryDisplay, primaryDisplay],
+				fallbackDisplay: primaryDisplay,
+				savedBounds: {
+					x: 5000,
+					y: 100,
+					width: 1100,
+					height: 720,
+				},
+			}),
+		).toEqual({
+			x: 510,
+			y: 185,
+			width: 900,
+			height: 670,
+			isMaximized: false,
+		});
+	});
+
+	it("uses the fallback display when visibility data is unavailable", () => {
 		expect(
 			restoreWindowBounds({
 				defaultBounds,
 				displays: [],
+				fallbackDisplay: primaryDisplay,
 				savedBounds: {
 					x: 4000,
 					y: 4000,
@@ -116,8 +150,8 @@ describe("restoreWindowBounds", () => {
 				},
 			}),
 		).toEqual({
-			x: 190,
-			y: 25,
+			x: 510,
+			y: 185,
 			width: 900,
 			height: 670,
 			isMaximized: false,
