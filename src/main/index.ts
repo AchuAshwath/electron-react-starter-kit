@@ -4,6 +4,7 @@ import { app, BrowserWindow, ipcMain, screen } from "electron";
 import icon from "../../resources/icon.png?asset";
 import { registerDialogIpcHandlers } from "./dialog/dialog.ipc";
 import { createIpcHandlerRegistrar } from "./ipc/ipc-handler";
+import { appLogger, configureAppLogging } from "./logging/logger";
 import { registerNotificationIpcHandlers } from "./notifications/notifications.ipc";
 import {
 	assertTrustedIpcSender,
@@ -24,6 +25,8 @@ import {
 	registerWindowStatePersistence,
 	restoreWindowBounds,
 } from "./window/window-state";
+
+configureAppLogging({ isDev: is.dev });
 
 function createWindow(): void {
 	const settings = getSettings();
@@ -54,11 +57,20 @@ function createWindow(): void {
 		),
 	});
 
+	appLogger.info("Main window created", {
+		height: restoredWindowBounds.height,
+		isMaximized: restoredWindowBounds.isMaximized,
+		width: restoredWindowBounds.width,
+		x: restoredWindowBounds.x,
+		y: restoredWindowBounds.y,
+	});
+
 	if (restoredWindowBounds.isMaximized) {
 		mainWindow.maximize();
 	}
 
 	mainWindow.on("ready-to-show", () => {
+		appLogger.info("Main window ready to show");
 		mainWindow.show();
 	});
 
@@ -94,6 +106,11 @@ function createWindow(): void {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.whenReady().then(() => {
+	appLogger.info("App ready", {
+		arch: process.arch,
+		platform: process.platform,
+	});
+
 	// Set app user model id for windows
 	electronApp.setAppUserModelId("com.electron");
 
@@ -151,6 +168,7 @@ app.whenReady().then(() => {
 // explicitly with Cmd + Q.
 app.on("window-all-closed", () => {
 	if (process.platform !== "darwin") {
+		appLogger.info("All windows closed, quitting app");
 		app.quit();
 	}
 });
