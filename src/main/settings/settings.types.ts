@@ -3,8 +3,11 @@ import { z } from "zod";
 export const themePreferenceSchema = z.enum(["system", "light", "dark"]);
 
 export const windowBoundsSchema = z.object({
+	x: z.number().int().optional(),
+	y: z.number().int().optional(),
 	width: z.number().int().min(320),
 	height: z.number().int().min(240),
+	isMaximized: z.boolean().optional(),
 });
 
 export const startupSettingsSchema = z.object({

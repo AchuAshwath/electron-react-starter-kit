@@ -43,6 +43,7 @@ Discover the core stack driving this starter template:
 * 🎨 **Modern UI Foundation**: Tailwind CSS v4, shadcn/ui-style primitives, lucide icons, and shared utilities are preconfigured.
 * 🌓 **Desktop-Aware Theme Switching**: Light, dark, and system themes are persisted through main-process settings and resolved with Electron `nativeTheme`.
 * 💾 **Validated User Settings**: `electron-store` persists normal preferences, while Zod validates settings updates at the IPC boundary.
+* **Window State Persistence**: Window size, position, and maximized state are restored safely while off-screen saved bounds fall back to a centered default.
 * **Native File Upload Demo**: Electron open/save dialogs, drag-and-drop path handling, shadcn-style file rows, session-scoped upload state, and post-selection promise feedback are wired through preload-safe APIs.
 * **Desktop Notification Preferences**: Native notification support checks, persisted opt-in settings, focus-aware delivery, and renderer hooks are exposed through the typed preload API.
 * 🧪 **Testing Setup**: Vitest, Testing Library, jsdom, coverage, and local test helpers are ready for main-process services, query factories, hooks, and components.
@@ -66,7 +67,8 @@ Discover the core stack driving this starter template:
 │   │   ├── ipc/                 # Typed IPC handler registrar, validation, and safe errors
 │   │   ├── notifications/       # Native notification settings, service, and IPC handlers
 │   │   ├── settings/            # Zod-validated electron-store settings module
-│   │   └── theme/               # nativeTheme integration and theme IPC handlers
+│   │   ├── theme/               # nativeTheme integration and theme IPC handlers
+│   │   └── window/              # BrowserWindow state restore, validation, and persistence
 │   ├── preload/
 │   │   ├── index.ts             # Typed contextBridge API exposed to the renderer
 │   │   └── index.d.ts           # Global window API types
@@ -243,7 +245,15 @@ ipcMain.handle(settingsIpcChannels.update, (_, patch: unknown) => {
 });
 ```
 
-Normal user preferences such as theme choice, window bounds, and startup options belong in `electron-store`. Sensitive values such as access tokens, refresh tokens, API keys, and passwords should live in a separate secret-storage module backed by Electron `safeStorage`.
+Normal user preferences such as theme choice, window bounds, and startup options belong in `electron-store`. Electron-specific behavior still belongs in feature modules: the window module restores, validates, and saves `windowBounds`, while the settings module owns the persisted schema and store. Sensitive values such as access tokens, refresh tokens, API keys, and passwords should live in a separate secret-storage module backed by Electron `safeStorage`.
+
+---
+
+## Window State Persistence
+
+Window state is handled in the main process so the renderer never controls `BrowserWindow` directly. On startup, the app reads `settings.windowBounds`, checks the saved position against the current display work areas, and restores the previous size, position, and maximized state only when the saved window would still be visible. If a saved position belongs to a disconnected monitor, the app falls back to the default bounds centered on the primary display.
+
+During runtime, the window module debounces `move`, `resize`, `maximize`, and `unmaximize` events before saving the normal bounds back to `electron-store`. Minimized windows are ignored so the app does not accidentally persist unusable minimized geometry. Settings-page size presets still update `windowBounds`, but the actual `BrowserWindow` resizing behavior is delegated to the window module.
 
 ---
 
@@ -414,7 +424,7 @@ Key design rule: file-based routing owns access control, TanStack Query owns ses
 
 ### Phase 5: Reliability and Observability
 
-- [ ] **Add window state persistence**: Restore, validate, and save window bounds while preventing off-screen launches.
+- [x] **Add window state persistence**: Restore, validate, and save window bounds while preventing off-screen launches.
 - [ ] **Add error boundary and crash handling**: Provide renderer error boundaries, main-process uncaught error handling, and renderer crash/reload behavior.
 - [ ] **Add `electron-log`**: Centralize app logs for main, preload, and renderer paths with production-friendly file output.
 
