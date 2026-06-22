@@ -4,7 +4,7 @@ import { app, BrowserWindow, ipcMain, screen } from "electron";
 import icon from "../../resources/icon.png?asset";
 import { registerDialogIpcHandlers } from "./dialog/dialog.ipc";
 import { createIpcHandlerRegistrar } from "./ipc/ipc-handler";
-import { appLogger, configureAppLogging } from "./logging/logger";
+import { appLogger, configureAppLogging, windowLogger } from "./logging/logger";
 import { registerNotificationIpcHandlers } from "./notifications/notifications.ipc";
 import {
 	assertTrustedIpcSender,
@@ -57,12 +57,13 @@ function createWindow(): void {
 		),
 	});
 
-	appLogger.info("Main window created", {
+	windowLogger.info("Main window created", {
 		height: restoredWindowBounds.height,
+		hasPosition:
+			restoredWindowBounds.x !== undefined &&
+			restoredWindowBounds.y !== undefined,
 		isMaximized: restoredWindowBounds.isMaximized,
 		width: restoredWindowBounds.width,
-		x: restoredWindowBounds.x,
-		y: restoredWindowBounds.y,
 	});
 
 	if (restoredWindowBounds.isMaximized) {
@@ -70,7 +71,7 @@ function createWindow(): void {
 	}
 
 	mainWindow.on("ready-to-show", () => {
-		appLogger.info("Main window ready to show");
+		windowLogger.info("Main window ready to show");
 		mainWindow.show();
 	});
 

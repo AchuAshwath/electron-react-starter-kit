@@ -1,5 +1,17 @@
 import type { BrowserWindow } from "electron";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const { windowLoggerMock } = vi.hoisted(() => ({
+	windowLoggerMock: {
+		info: vi.fn(),
+		warn: vi.fn(),
+	},
+}));
+
+vi.mock("../logging/logger", () => ({
+	windowLogger: windowLoggerMock,
+}));
+
 import type { WindowBounds } from "../settings/settings.types";
 import {
 	applyPreferredWindowBounds,
@@ -27,6 +39,10 @@ const secondaryDisplay: DisplayWorkArea = {
 	height: 1040,
 };
 
+beforeEach(() => {
+	vi.clearAllMocks();
+});
+
 describe("restoreWindowBounds", () => {
 	it("restores saved bounds when the window is visible on a current display", () => {
 		const savedBounds: WindowBounds = {
@@ -48,6 +64,14 @@ describe("restoreWindowBounds", () => {
 			...savedBounds,
 			isMaximized: true,
 		});
+		expect(windowLoggerMock.info).toHaveBeenCalledWith(
+			"Window state restored",
+			{
+				height: 720,
+				isMaximized: true,
+				width: 1100,
+			},
+		);
 	});
 
 	it("centers saved size when saved position is missing", () => {
@@ -91,6 +115,14 @@ describe("restoreWindowBounds", () => {
 			height: 670,
 			isMaximized: false,
 		});
+		expect(windowLoggerMock.warn).toHaveBeenCalledWith(
+			"Stored window state was invalid, using centered bounds",
+			{
+				height: 670,
+				reason: "off-screen",
+				width: 900,
+			},
+		);
 	});
 
 	it("restores bounds that are still meaningfully visible", () => {
@@ -211,6 +243,11 @@ describe("registerWindowStatePersistence", () => {
 			width: 1100,
 			height: 720,
 			isMaximized: true,
+		});
+		expect(windowLoggerMock.info).toHaveBeenCalledWith("Window state saved", {
+			height: 720,
+			isMaximized: true,
+			width: 1100,
 		});
 
 		vi.useRealTimers();

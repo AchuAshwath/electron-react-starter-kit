@@ -1,4 +1,5 @@
 import type { BrowserWindow } from "electron";
+import { windowLogger } from "../logging/logger";
 import type { WindowBounds } from "../settings/settings.types";
 
 export type DisplayWorkArea = {
@@ -43,6 +44,12 @@ export function restoreWindowBounds({
 	};
 
 	if (isWindowVisibleOnAnyDisplay(savedState, displays)) {
+		windowLogger.info("Window state restored", {
+			height: savedState.height,
+			isMaximized: savedState.isMaximized,
+			width: savedState.width,
+		});
+
 		return savedState;
 	}
 
@@ -51,7 +58,18 @@ export function restoreWindowBounds({
 			? savedBounds
 			: defaultBounds;
 
-	return centerWindowOnDisplay(fallbackBounds, fallbackDisplay);
+	const centeredBounds = centerWindowOnDisplay(fallbackBounds, fallbackDisplay);
+
+	windowLogger.warn("Stored window state was invalid, using centered bounds", {
+		height: centeredBounds.height,
+		reason:
+			savedBounds.x === undefined || savedBounds.y === undefined
+				? "missing-position"
+				: "off-screen",
+		width: centeredBounds.width,
+	});
+
+	return centeredBounds;
 }
 
 export function applyPreferredWindowBounds(
@@ -81,7 +99,14 @@ export function registerWindowStatePersistence(
 		}
 
 		saveWindowBoundsTimer = setTimeout(() => {
-			saveWindowBounds(getPersistableWindowBounds(window));
+			const bounds = getPersistableWindowBounds(window);
+
+			saveWindowBounds(bounds);
+			windowLogger.info("Window state saved", {
+				height: bounds.height,
+				isMaximized: bounds.isMaximized,
+				width: bounds.width,
+			});
 		}, saveWindowBoundsDelayMs);
 	};
 

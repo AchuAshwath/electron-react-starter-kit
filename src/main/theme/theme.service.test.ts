@@ -1,15 +1,19 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { defaultSettings } from "../settings/settings.types";
 
-const { nativeThemeMock, sentMessages, storeState } = vi.hoisted(() => ({
-	nativeThemeMock: {
-		shouldUseDarkColors: false,
-		shouldUseDarkColorsForSystemIntegratedUI: false,
-		themeSource: "system",
-	},
-	sentMessages: [] as Array<{ channel: string; value: unknown }>,
-	storeState: new Map<string, unknown>(),
-}));
+const { nativeThemeMock, sentMessages, settingsLoggerMock, storeState } =
+	vi.hoisted(() => ({
+		nativeThemeMock: {
+			shouldUseDarkColors: false,
+			shouldUseDarkColorsForSystemIntegratedUI: false,
+			themeSource: "system",
+		},
+		sentMessages: [] as Array<{ channel: string; value: unknown }>,
+		settingsLoggerMock: {
+			info: vi.fn(),
+		},
+		storeState: new Map<string, unknown>(),
+	}));
 
 vi.mock("electron", () => ({
 	BrowserWindow: {
@@ -24,6 +28,10 @@ vi.mock("electron", () => ({
 		],
 	},
 	nativeTheme: nativeThemeMock,
+}));
+
+vi.mock("../logging/logger", () => ({
+	settingsLogger: settingsLoggerMock,
 }));
 
 vi.mock("electron-store", () => {
@@ -92,6 +100,13 @@ describe("theme service", () => {
 			...defaultSettings,
 			theme: "dark",
 		});
+		expect(settingsLoggerMock.info).toHaveBeenCalledWith(
+			"Theme preference changed",
+			{
+				preference: "dark",
+				resolvedTheme: "dark",
+			},
+		);
 	});
 
 	it("rejects invalid theme preferences", () => {

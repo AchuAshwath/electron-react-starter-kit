@@ -7,6 +7,7 @@ const {
 	isSupportedMock,
 	notificationConstructorMock,
 	notificationInstances,
+	notificationLoggerMock,
 	showMock,
 	updateSettingsMock,
 } = vi.hoisted(() => ({
@@ -15,6 +16,10 @@ const {
 	isSupportedMock: vi.fn(),
 	notificationConstructorMock: vi.fn(),
 	notificationInstances: [] as Array<{ body?: string; title: string }>,
+	notificationLoggerMock: {
+		info: vi.fn(),
+		warn: vi.fn(),
+	},
 	showMock: vi.fn(),
 	updateSettingsMock: vi.fn(),
 }));
@@ -38,6 +43,10 @@ vi.mock("electron", () => {
 		Notification: NotificationMock,
 	};
 });
+
+vi.mock("../logging/logger", () => ({
+	notificationLogger: notificationLoggerMock,
+}));
 
 vi.mock("../settings/settings.store", () => {
 	return {
@@ -83,6 +92,13 @@ describe("notifications service", () => {
 				desktopEnabled: false,
 			},
 		});
+		expect(notificationLoggerMock.info).toHaveBeenCalledWith(
+			"Desktop notifications preference changed",
+			{
+				enabled: false,
+				supported: false,
+			},
+		);
 	});
 
 	it("does not show notifications until desktop notifications are enabled", () => {
@@ -93,6 +109,12 @@ describe("notifications service", () => {
 			shown: false,
 		});
 		expect(notificationConstructorMock).not.toHaveBeenCalled();
+		expect(notificationLoggerMock.info).toHaveBeenCalledWith(
+			"Native notification skipped",
+			{
+				reason: "disabled",
+			},
+		);
 	});
 
 	it("shows a native notification when supported and enabled", () => {
@@ -119,6 +141,12 @@ describe("notifications service", () => {
 			},
 		]);
 		expect(showMock).toHaveBeenCalledTimes(1);
+		expect(notificationLoggerMock.info).toHaveBeenCalledWith(
+			"Native notification sent",
+			{
+				showWhenFocused: false,
+			},
+		);
 	});
 
 	it("skips native notifications while the app is focused by default", () => {

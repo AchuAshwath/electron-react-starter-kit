@@ -1,4 +1,5 @@
 import { BrowserWindow, nativeTheme } from "electron";
+import { settingsLogger } from "../logging/logger";
 import { getSettings, updateSettings } from "../settings/settings.store";
 import {
 	type ThemePreference,
@@ -32,7 +33,14 @@ export function setThemePreference(preference: ThemePreference): ThemeState {
 	applyThemePreference(parsedPreference);
 	updateSettings({ theme: parsedPreference });
 
-	return getThemeState();
+	const themeState = getThemeState();
+
+	settingsLogger.info("Theme preference changed", {
+		preference: themeState.preference,
+		resolvedTheme: themeState.resolvedTheme,
+	});
+
+	return themeState;
 }
 
 export function syncNativeThemeFromSettings(): ThemeState {
