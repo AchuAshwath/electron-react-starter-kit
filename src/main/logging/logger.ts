@@ -4,10 +4,10 @@ type ConfigureAppLoggingOptions = {
 	isDev: boolean;
 };
 
-const consoleLogFormat = "%c{h}:{i}:{s}.{ms} {level}{scope}%c | {text}";
+const consoleLogFormat = "%c{h}:{i}:{s}.{ms} [{level}]{scope}%c | {text}";
 const fileLogFormat = "[{iso}] [{level}]{scope} {text}";
 
-const consoleColorMap = {
+const consoleLevelColors = {
 	debug: "gray",
 	default: "unset",
 	error: "red",
@@ -36,7 +36,7 @@ export function configureAppLogging({
 
 	log.transports.console.level = isDev ? "debug" : "warn";
 	log.transports.console.format = consoleLogFormat;
-	log.transports.console.colorMap = consoleColorMap;
+	log.transports.console.colorMap = consoleLevelColors;
 	log.transports.console.useStyles = isDev;
 
 	log.transports.file.level = "info";

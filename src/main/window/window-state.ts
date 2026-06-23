@@ -44,12 +44,6 @@ export function restoreWindowBounds({
 	};
 
 	if (isWindowVisibleOnAnyDisplay(savedState, displays)) {
-		windowLogger.info("Window state restored", {
-			height: savedState.height,
-			isMaximized: savedState.isMaximized,
-			width: savedState.width,
-		});
-
 		return savedState;
 	}
 
@@ -99,14 +93,7 @@ export function registerWindowStatePersistence(
 		}
 
 		saveWindowBoundsTimer = setTimeout(() => {
-			const bounds = getPersistableWindowBounds(window);
-
-			saveWindowBounds(bounds);
-			windowLogger.info("Window state saved", {
-				height: bounds.height,
-				isMaximized: bounds.isMaximized,
-				width: bounds.width,
-			});
+			saveWindowBounds(getPersistableWindowBounds(window));
 		}, saveWindowBoundsDelayMs);
 	};
 

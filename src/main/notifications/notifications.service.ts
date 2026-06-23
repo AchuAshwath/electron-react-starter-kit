@@ -83,10 +83,6 @@ export function showNotification(
 		title: input.title,
 	}).show();
 
-	notificationLogger.info("Native notification sent", {
-		showWhenFocused: input.showWhenFocused === true,
-	});
-
 	return {
 		shown: true,
 	};

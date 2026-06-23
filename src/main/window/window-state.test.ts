@@ -64,14 +64,7 @@ describe("restoreWindowBounds", () => {
 			...savedBounds,
 			isMaximized: true,
 		});
-		expect(windowLoggerMock.info).toHaveBeenCalledWith(
-			"Window state restored",
-			{
-				height: 720,
-				isMaximized: true,
-				width: 1100,
-			},
-		);
+		expect(windowLoggerMock.info).not.toHaveBeenCalled();
 	});
 
 	it("centers saved size when saved position is missing", () => {
@@ -244,11 +237,7 @@ describe("registerWindowStatePersistence", () => {
 			height: 720,
 			isMaximized: true,
 		});
-		expect(windowLoggerMock.info).toHaveBeenCalledWith("Window state saved", {
-			height: 720,
-			isMaximized: true,
-			width: 1100,
-		});
+		expect(windowLoggerMock.info).not.toHaveBeenCalled();
 
 		vi.useRealTimers();
 	});

@@ -76,7 +76,7 @@ describe("configureAppLogging", () => {
 		});
 		expect(electronLogMock.default.transports.console.level).toBe("debug");
 		expect(electronLogMock.default.transports.console.format).toBe(
-			"%c{h}:{i}:{s}.{ms} {level}{scope}%c | {text}",
+			"%c{h}:{i}:{s}.{ms} [{level}]{scope}%c | {text}",
 		);
 		expect(electronLogMock.default.transports.console.colorMap).toEqual({
 			debug: "gray",

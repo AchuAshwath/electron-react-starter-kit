@@ -141,12 +141,7 @@ describe("notifications service", () => {
 			},
 		]);
 		expect(showMock).toHaveBeenCalledTimes(1);
-		expect(notificationLoggerMock.info).toHaveBeenCalledWith(
-			"Native notification sent",
-			{
-				showWhenFocused: false,
-			},
-		);
+		expect(notificationLoggerMock.info).not.toHaveBeenCalled();
 	});
 
 	it("skips native notifications while the app is focused by default", () => {
