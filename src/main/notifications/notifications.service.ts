@@ -1,4 +1,5 @@
 import { BrowserWindow, Notification } from "electron";
+import { notificationLogger } from "../logging/logger";
 import { getSettings, updateSettings } from "../settings/settings.store";
 import type {
 	NotificationPermissionState,
@@ -31,6 +32,11 @@ export function setDesktopNotificationsEnabled(
 		},
 	});
 
+	notificationLogger.info("Desktop notifications preference changed", {
+		enabled: nextDesktopEnabled,
+		supported,
+	});
+
 	return getNotificationPermissionState();
 }
 
@@ -40,6 +46,10 @@ export function showNotification(
 	const permission = getNotificationPermissionState();
 
 	if (!permission.supported) {
+		notificationLogger.warn("Native notification skipped", {
+			reason: "unsupported",
+		});
+
 		return {
 			reason: "unsupported",
 			shown: false,
@@ -47,6 +57,10 @@ export function showNotification(
 	}
 
 	if (!permission.desktopEnabled) {
+		notificationLogger.info("Native notification skipped", {
+			reason: "disabled",
+		});
+
 		return {
 			reason: "disabled",
 			shown: false,
@@ -54,6 +68,10 @@ export function showNotification(
 	}
 
 	if (!input.showWhenFocused && BrowserWindow.getFocusedWindow()) {
+		notificationLogger.info("Native notification skipped", {
+			reason: "focused",
+		});
+
 		return {
 			reason: "focused",
 			shown: false,

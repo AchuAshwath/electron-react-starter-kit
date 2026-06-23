@@ -1,4 +1,5 @@
 import type { BrowserWindow } from "electron";
+import { windowLogger } from "../logging/logger";
 import type { WindowBounds } from "../settings/settings.types";
 
 export type DisplayWorkArea = {
@@ -51,7 +52,18 @@ export function restoreWindowBounds({
 			? savedBounds
 			: defaultBounds;
 
-	return centerWindowOnDisplay(fallbackBounds, fallbackDisplay);
+	const centeredBounds = centerWindowOnDisplay(fallbackBounds, fallbackDisplay);
+
+	windowLogger.warn("Stored window state was invalid, using centered bounds", {
+		height: centeredBounds.height,
+		reason:
+			savedBounds.x === undefined || savedBounds.y === undefined
+				? "missing-position"
+				: "off-screen",
+		width: centeredBounds.width,
+	});
+
+	return centeredBounds;
 }
 
 export function applyPreferredWindowBounds(

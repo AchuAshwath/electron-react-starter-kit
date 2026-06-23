@@ -1,5 +1,6 @@
 import { BrowserWindow } from "electron";
 import type { IpcHandlerRegistrar } from "../ipc/ipc-handler";
+import { settingsLogger } from "../logging/logger";
 import {
 	applyThemePreference,
 	broadcastThemeState,
@@ -50,6 +51,11 @@ export function registerSettingsIpcHandlers(
 				if (window) {
 					applyPreferredWindowBounds(window, settings.windowBounds);
 				}
+
+				settingsLogger.info("Window size preference changed", {
+					height: settings.windowBounds.height,
+					width: settings.windowBounds.width,
+				});
 
 				broadcastSettings(settings);
 			}
