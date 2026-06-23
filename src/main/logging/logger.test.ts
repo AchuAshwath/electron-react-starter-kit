@@ -95,6 +95,18 @@ describe("configureAppLogging", () => {
 		expect(
 			electronLogMock.default.eventLogger.startLogging,
 		).toHaveBeenCalledWith({
+			events: {
+				app: {
+					"child-process-gone": true,
+					"render-process-gone": true,
+				},
+				webContents: {
+					"did-fail-load": true,
+					"did-fail-provisional-load": true,
+					unresponsive: true,
+				},
+			},
+			format: expect.any(Function),
 			level: "warn",
 			scope: "electron-event",
 		});
@@ -103,6 +115,32 @@ describe("configureAppLogging", () => {
 		).toHaveBeenCalledWith({
 			showDialog: false,
 		});
+	});
+
+	it("sanitizes Electron event logs", () => {
+		configureAppLogging({ isDev: true });
+
+		const startLoggingOptions =
+			electronLogMock.default.eventLogger.startLogging.mock.calls[0]?.[0];
+		const format = startLoggingOptions?.format;
+
+		expect(format).toEqual(expect.any(Function));
+		expect(
+			format?.({
+				args: [-102, "Connection refused", "https://example.test/secret", true],
+				eventName: "did-fail-load",
+				eventSource: "webContents",
+			}),
+		).toEqual([
+			"webContents:did-fail-load",
+			{
+				errorCode: -102,
+				errorDescription: "Connection refused",
+				eventName: "did-fail-load",
+				eventSource: "webContents",
+				isMainFrame: true,
+			},
+		]);
 	});
 
 	it("keeps production console logging quieter", () => {
