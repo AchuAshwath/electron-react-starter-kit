@@ -11,7 +11,7 @@ flowchart LR
 	Recipes --> ClientApp
 
 	Foundation --> Security["Security + IPC + settings + tests"]
-	Foundation --> FutureCore["Secrets + auth session + config + reliability"]
+	Foundation --> FutureCore["Secrets + auth scaffold + config + reliability"]
 	Recipes --> Auth["MSAL provider wiring"]
 	Recipes --> Files["Imported file persistence"]
 	Recipes --> Updates["Auto-update"]
@@ -23,7 +23,7 @@ flowchart LR
 - Electron runtime security defaults.
 - Typed IPC registrar with trusted sender validation and sanitized errors.
 - Preload-first renderer API.
-- TanStack Router file-based routing with `(app)` and `(auth)` layout groups.
+- TanStack Router file-based routing.
 - TanStack Query factories and hooks.
 - Settings persistence through `electron-store`.
 - Desktop-aware theme switching.
@@ -33,7 +33,7 @@ flowchart LR
 - Main-process logging.
 - Vitest and Testing Library setup.
 - electron-builder packaging scripts.
-- Documentation split between core guides and optional recipes.`r`n- Auth route scaffold with `/login`, `/signup`, reusable `AuthForm`, and safe `returnTo` parsing.
+- Documentation split between core guides and optional recipes.
 
 ## Core Starter Roadmap
 

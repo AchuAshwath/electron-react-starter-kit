@@ -12,7 +12,7 @@ flowchart LR
 	Main --> Provider["RouterProvider"]
 	Provider --> Root["__root.tsx"]
 	Root --> App["(app)/route.tsx"]
-	App --> Pages["index.tsx / settings.tsx"]`r`n`tRoot --> Auth["(auth)/route.tsx"]`r`n`tAuth --> AuthPages["login.tsx / signup.tsx"]
+	App --> Pages["index.tsx / settings.tsx"]
 ```
 
 ## Current Route Shape
@@ -26,7 +26,7 @@ src/renderer/src/routes/
     `-- settings.tsx    # settings route
 ```
 
-`(app)` and `(auth)` are pathless groups. They add shared layout without adding URL segments. The auth pages live at `/login` and `/signup`, not `/auth/login` and `/auth/signup`.
+`(app)` is a pathless group. It adds shared layout without adding a URL segment.
 
 ## How It Is Wired
 
