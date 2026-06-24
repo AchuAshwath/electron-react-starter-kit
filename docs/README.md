@@ -204,7 +204,7 @@ Checklist:
 
 ## Core Guides
 
-- [TanStack Router](tanstack-router.md): route tree, `(app)` layout, pathless groups, route examples, and route checks.
+- [TanStack Router](tanstack-router.md): route tree, `(app)` and `(auth)` layouts, pathless groups, route examples, and route checks.`r`n- [Auth Routing](auth-routing.md): login/signup route scaffold, reusable `AuthForm`, safe `returnTo`, and deferred auth work.
 - [TanStack Query](tanstack-query.md): query client, query factories, mutations, cache lifetimes, and testing.
 - [UI Foundation](ui-foundation.md): Tailwind, shadcn-style primitives, component layering, icons, and feedback patterns.
 - [System Info](system-info.md): the smallest complete IPC + Query example for stable process metadata.

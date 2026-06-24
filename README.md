@@ -63,7 +63,7 @@ Discover the core stack driving this starter template:
 
 - Preload-only `window.api` surface for renderer access to Electron capabilities.
 - Typed IPC registrar with Zod input validation and renderer-safe error messages.
-- TanStack Router file routes with a shared `(app)` layout and generated route tree.
+- TanStack Router file routes with shared `(app)` and `(auth)` layout groups and a generated route tree.
 - TanStack Query factories and hooks for IPC-backed renderer state.
 
 **Desktop platform features**
@@ -131,7 +131,7 @@ pnpm ci            # Run the full local verification chain
 Core docs describe features that are already wired into the starter:
 
 - [Documentation index](docs/README.md) for the full reading order.
-- [TanStack Router](docs/tanstack-router.md), [TanStack Query](docs/tanstack-query.md), and [UI Foundation](docs/ui-foundation.md) for renderer app architecture.
+- [TanStack Router](docs/tanstack-router.md), [Auth Routing](docs/auth-routing.md), [TanStack Query](docs/tanstack-query.md), and [UI Foundation](docs/ui-foundation.md) for renderer app architecture.
 - [System Info](docs/system-info.md) for the smallest complete IPC + Query example.
 - [Typed IPC](docs/typed-ipc.md) and [Electron Security](docs/electron-security.md) for the main/preload/renderer boundary.
 - [Settings](docs/settings.md), [Theme](docs/theme.md), [File Dialogs and Upload](docs/file-dialogs-and-upload.md), [Notifications](docs/notifications.md), and [Window State](docs/window-state.md) for shipped platform features.
@@ -168,7 +168,7 @@ The roadmap is split into core starter work and optional recipes.
 Core infrastructure next:
 
 - Safe secret storage for tokens, API keys, and sensitive values.
-- Provider-neutral auth scaffold with route guards and typed IPC contracts.
+- Auth session contract with route guards and typed IPC contracts.
 - Typed environment/configuration guidance.
 - Renderer error boundaries and reliability patterns.
 
