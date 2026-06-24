@@ -1,4 +1,4 @@
-import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+﻿import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
 import { ThemeSwitcher } from "../../components/theme-switcher";
 import { buttonVariants } from "../../components/ui/button";
 import { cn } from "../../lib/utils";
@@ -40,7 +40,7 @@ function AppLayout(): React.JSX.Element {
 								"text-muted-foreground hover:text-foreground",
 							)}
 						>
-							Login
+							Logout
 						</Link>
 						<ThemeSwitcher />
 					</div>
