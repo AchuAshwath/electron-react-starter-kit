@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { type LucideIcon, MonitorIcon, MoonIcon, SunIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "../../components/ui/button";
@@ -98,6 +98,7 @@ function SettingsRoute(): React.JSX.Element {
 	const notificationPermissionQuery = useNotificationPermission();
 	const setDesktopNotifications = useSetDesktopNotificationsEnabled();
 	const showNotification = useShowNotification();
+	const router = useRouter();
 
 	useSettingsUpdatedListener();
 
@@ -199,6 +200,20 @@ function SettingsRoute(): React.JSX.Element {
 						onDisable={() => void setNotificationsEnabled(false)}
 						onEnable={() => void setNotificationsEnabled(true)}
 					/>
+				</SettingsRow>
+
+				<SettingsRow
+					title="Account"
+					description="Return to the auth screen. Session cleanup will be wired in the auth IPC step."
+				>
+					<Button
+						type="button"
+						variant="outline"
+						size="sm"
+						onClick={() => void router.navigate({ to: "/login" })}
+					>
+						Logout
+					</Button>
 				</SettingsRow>
 			</div>
 		</div>

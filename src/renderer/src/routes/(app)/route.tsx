@@ -32,18 +32,7 @@ function AppLayout(): React.JSX.Element {
 							Settings
 						</Link>
 					</nav>
-					<div className="flex items-center gap-2">
-						<Link
-							to="/login"
-							className={cn(
-								buttonVariants({ variant: "outline", size: "sm" }),
-								"text-muted-foreground hover:text-foreground",
-							)}
-						>
-							Logout
-						</Link>
-						<ThemeSwitcher />
-					</div>
+					<ThemeSwitcher />
 				</div>
 			</header>
 			<Outlet />
