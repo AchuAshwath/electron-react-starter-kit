@@ -28,6 +28,7 @@ export function createLogger(scope: string) {
 }
 
 export const appLogger = createLogger("app");
+export const authLogger = createLogger("auth");
 export const notificationLogger = createLogger("notifications");
 export const settingsLogger = createLogger("settings");
 export const windowLogger = createLogger("window");

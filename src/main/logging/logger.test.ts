@@ -55,14 +55,14 @@ const electronLogMock = vi.hoisted(() => {
 
 vi.mock("electron-log/main", () => electronLogMock);
 
-const { appLogger, configureAppLogging, createLogger } = await import(
-	"./logger"
-);
+const { appLogger, authLogger, configureAppLogging, createLogger } =
+	await import("./logger");
 
 describe("createLogger", () => {
 	it("creates scoped loggers", () => {
 		expect(createLogger("window")).toBe(electronLogMock.getScope("window"));
 		expect(appLogger).toBe(electronLogMock.getScope("app"));
+		expect(authLogger).toBe(electronLogMock.getScope("auth"));
 	});
 });
 
