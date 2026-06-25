@@ -1,3 +1,5 @@
+import { z } from "zod";
+
 export type AuthUser = {
 	id: string;
 	name: string;
@@ -11,8 +13,16 @@ export type AuthSession = {
 	expiresAt?: string;
 };
 
+export const authSignInRequestSchema = z.object({
+	strategy: z.literal("device"),
+});
+
+export type AuthSignInRequest = z.infer<typeof authSignInRequestSchema>;
+
 export type AuthProvider = {
+	id: string;
 	getSession: () => Promise<AuthSession | null>;
-	signIn: () => Promise<AuthSession>;
+	signIn: (request: AuthSignInRequest) => Promise<AuthSession>;
+	refreshSession: () => Promise<AuthSession | null>;
 	signOut: () => Promise<void>;
 };
