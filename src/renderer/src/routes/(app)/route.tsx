@@ -5,11 +5,17 @@ import {
 	Outlet,
 	redirect,
 } from "@tanstack/react-router";
+import {
+	AppRouteErrorView,
+	AppRoutePendingView,
+} from "../../components/route-fallbacks";
 import { ThemeSwitcher } from "../../components/theme-switcher";
 import { buttonVariants } from "../../components/ui/button";
 import { cn } from "../../lib/utils";
 
 export const Route = createFileRoute("/(app)")({
+	errorComponent: AppRouteErrorView,
+	pendingComponent: AppRoutePendingView,
 	beforeLoad: async ({ context, location }) => {
 		const session = await context.queryClient.ensureQueryData(
 			authQueries.session(),
