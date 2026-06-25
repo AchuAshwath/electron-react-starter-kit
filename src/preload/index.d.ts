@@ -1,3 +1,4 @@
+import type { AuthSession } from "../main/auth/auth.types.ts";
 import type {
 	OpenFileDialogInput,
 	OpenFileDialogResult,
@@ -28,6 +29,12 @@ declare global {
 				chromeVersion: string;
 				electronVersion: string;
 			}>;
+
+			auth: {
+				getSession: () => Promise<AuthSession | null>;
+				signIn: () => Promise<AuthSession>;
+				signOut: () => Promise<void>;
+			};
 
 			settings: {
 				get: () => Promise<UserSettings>;
