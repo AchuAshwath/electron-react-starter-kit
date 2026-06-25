@@ -1,6 +1,8 @@
 import { AuthForm } from "@renderer/components/auth/auth-form";
+import { useSignIn } from "@renderer/core/auth/auth.hooks";
+import { authQueries } from "@renderer/core/auth/auth.queries";
 import { getSafeRedirectUrl } from "@renderer/lib/auth-config";
-import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
 import { z } from "zod";
 
 const searchSchema = z.object({
@@ -13,14 +15,25 @@ const searchSchema = z.object({
 
 export const Route = createFileRoute("/(auth)/signup")({
 	validateSearch: searchSchema,
+	beforeLoad: async ({ context, search }) => {
+		const session = await context.queryClient.ensureQueryData(
+			authQueries.session(),
+		);
+
+		if (session) {
+			throw redirect({ to: search.returnTo ?? "/" });
+		}
+	},
 	component: SignupPage,
 });
 
 function SignupPage(): React.JSX.Element {
 	const router = useRouter();
 	const search = Route.useSearch();
+	const signIn = useSignIn();
 
-	async function handleSuccess(): Promise<void> {
+	async function handleSignup(): Promise<void> {
+		await signIn.mutateAsync();
 		await router.navigate({ to: search.returnTo ?? "/" });
 	}
 
@@ -29,7 +42,9 @@ function SignupPage(): React.JSX.Element {
 			<div className="w-full max-w-sm">
 				<AuthForm
 					mode="signup"
-					onSuccess={handleSuccess}
+					onSuccess={handleSignup}
+					isLoading={signIn.isPending}
+					errorMessage={signIn.error?.message}
 					returnTo={search.returnTo}
 				/>
 			</div>
