@@ -21,6 +21,7 @@ interface AuthFormProps extends ComponentProps<"div"> {
 	mode?: "login" | "signup";
 	onSuccess: () => Promise<void> | void;
 	isLoading?: boolean;
+	errorMessage?: string;
 	returnTo?: string;
 }
 
@@ -29,18 +30,26 @@ function AuthForm({
 	mode = "login",
 	onSuccess,
 	isLoading = false,
+	errorMessage,
 	returnTo,
 	...props
 }: AuthFormProps) {
 	const isSignup = mode === "signup";
 
+	function runAuthAction(): void {
+		void Promise.resolve(onSuccess()).catch(() => {
+			// The caller owns the visible error state; this prevents a noisy rejected
+			// promise when the auth provider reports a handled failure.
+		});
+	}
+
 	function handleSubmit(event: React.FormEvent<HTMLFormElement>): void {
 		event.preventDefault();
-		void onSuccess();
+		runAuthAction();
 	}
 
 	return (
-		<div className={cn("flex w-full flex-col gap-6", className)} {...props}>
+		<div className={cn("flex flex-col gap-6", className)} {...props}>
 			<Card>
 				<CardHeader>
 					<CardTitle>
@@ -48,8 +57,8 @@ function AuthForm({
 					</CardTitle>
 					<CardDescription>
 						{isSignup
-							? "Enter your details below to create your account."
-							: "Enter your email below to login to your account."}
+							? "Enter your email below to create your account"
+							: "Enter your email below to login to your account"}
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
@@ -60,7 +69,7 @@ function AuthForm({
 								<Input
 									id="email"
 									type="email"
-									placeholder="name@company.com"
+									placeholder="m@example.com"
 									autoComplete="email"
 									disabled={isLoading}
 									required
@@ -69,6 +78,14 @@ function AuthForm({
 							<Field>
 								<div className="flex items-center">
 									<FieldLabel htmlFor="password">Password</FieldLabel>
+									{isSignup ? null : (
+										<button
+											type="button"
+											className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
+										>
+											Forgot your password?
+										</button>
+									)}
 								</div>
 								<Input
 									id="password"
@@ -79,22 +96,39 @@ function AuthForm({
 								/>
 							</Field>
 							<Field>
-								<Button type="submit" disabled={isLoading}>
-									{isSignup ? "Create account" : "Login"}
+								<Button type="submit" disabled>
+									{getPrimaryButtonLabel({ isLoading, isSignup })}
 								</Button>
-								<FieldDescription className="text-center">
-									{isSignup ? (
-										<>
-											Already have an account?{" "}
-											<AuthModeLink mode="login" returnTo={returnTo} />
-										</>
-									) : (
-										<>
-											Don&apos;t have an account?{" "}
-											<AuthModeLink mode="signup" returnTo={returnTo} />
-										</>
-									)}
-								</FieldDescription>
+								<Button
+									type="button"
+									variant="outline"
+									disabled={isLoading}
+									onClick={runAuthAction}
+								>
+									{isLoading ? "Continuing..." : "Continue with device account"}
+								</Button>
+								{errorMessage ? (
+									<p
+										className="text-center text-sm text-destructive"
+										role="alert"
+									>
+										{errorMessage}
+									</p>
+								) : (
+									<FieldDescription className="text-center">
+										{isSignup ? (
+											<>
+												Already have an account?{" "}
+												<AuthModeLink mode="login" returnTo={returnTo} />
+											</>
+										) : (
+											<>
+												Don&apos;t have an account?{" "}
+												<AuthModeLink mode="signup" returnTo={returnTo} />
+											</>
+										)}
+									</FieldDescription>
+								)}
 							</Field>
 						</FieldGroup>
 					</form>
@@ -102,6 +136,20 @@ function AuthForm({
 			</Card>
 		</div>
 	);
+}
+
+function getPrimaryButtonLabel({
+	isLoading,
+	isSignup,
+}: {
+	isLoading: boolean;
+	isSignup: boolean;
+}): string {
+	if (isLoading) {
+		return isSignup ? "Creating account..." : "Logging in...";
+	}
+
+	return isSignup ? "Create account" : "Login";
 }
 
 function AuthModeLink({
@@ -115,7 +163,7 @@ function AuthModeLink({
 		<Link
 			to={mode === "login" ? "/login" : "/signup"}
 			search={returnTo ? { returnTo } : {}}
-			className="font-medium text-primary underline-offset-4 hover:underline"
+			className="font-medium underline-offset-4 hover:underline"
 		>
 			{mode === "login" ? "Login" : "Sign up"}
 		</Link>

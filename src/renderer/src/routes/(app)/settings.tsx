@@ -1,3 +1,4 @@
+import { useAuthSession, useSignOut } from "@renderer/core/auth/auth.hooks";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { type LucideIcon, MonitorIcon, MoonIcon, SunIcon } from "lucide-react";
 import { toast } from "sonner";
@@ -99,6 +100,8 @@ function SettingsRoute(): React.JSX.Element {
 	const setDesktopNotifications = useSetDesktopNotificationsEnabled();
 	const showNotification = useShowNotification();
 	const router = useRouter();
+	const signOut = useSignOut();
+	const authSessionQuery = useAuthSession();
 
 	useSettingsUpdatedListener();
 
@@ -114,6 +117,16 @@ function SettingsRoute(): React.JSX.Element {
 		notificationPermissionQuery.isLoading ||
 		setDesktopNotifications.isPending ||
 		showNotification.isPending;
+	const authUser = authSessionQuery.data?.user;
+
+	async function handleSignOut(): Promise<void> {
+		try {
+			await signOut.mutateAsync();
+			await router.navigate({ to: "/login" });
+		} catch {
+			toast.error("Could not log out.");
+		}
+	}
 
 	async function setNotificationsEnabled(enabled: boolean): Promise<void> {
 		let permission: Awaited<
@@ -149,7 +162,15 @@ function SettingsRoute(): React.JSX.Element {
 	}
 
 	return (
-		<div className="mx-auto flex w-full max-w-3xl flex-col px-6 py-8">
+		<div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8">
+			<AccountSection
+				name={getAuthUserDisplayName(authUser)}
+				provider={getAuthProviderLabel(authUser?.provider)}
+				isLoggingOut={signOut.isPending}
+				onLogout={() => {
+					void handleSignOut();
+				}}
+			/>
 			<div className="divide-y divide-border rounded-xl border border-border bg-background shadow-sm">
 				<SettingsRow
 					title="Appearance"
@@ -201,23 +222,62 @@ function SettingsRoute(): React.JSX.Element {
 						onEnable={() => void setNotificationsEnabled(true)}
 					/>
 				</SettingsRow>
-
-				<SettingsRow
-					title="Account"
-					description="Return to the auth screen. Session cleanup will be wired in the auth IPC step."
-				>
-					<Button
-						type="button"
-						variant="outline"
-						size="sm"
-						onClick={() => void router.navigate({ to: "/login" })}
-					>
-						Logout
-					</Button>
-				</SettingsRow>
 			</div>
 		</div>
 	);
+}
+
+function AccountSection({
+	isLoggingOut,
+	name,
+	onLogout,
+	provider,
+}: {
+	isLoggingOut: boolean;
+	name: string;
+	onLogout: () => void;
+	provider: string;
+}): React.JSX.Element {
+	return (
+		<section className="flex min-w-0 flex-col gap-3 rounded-xl border border-border bg-background p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+			<div className="flex min-w-0 items-center gap-3">
+				<div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-primary text-sm font-medium text-primary-foreground">
+					{getAuthUserInitial(name)}
+				</div>
+				<div className="min-w-0">
+					<p className="truncate text-sm font-medium">{name}</p>
+					<p className="truncate text-xs text-muted-foreground">{provider}</p>
+				</div>
+			</div>
+			<Button
+				type="button"
+				variant="outline"
+				size="sm"
+				disabled={isLoggingOut}
+				onClick={onLogout}
+			>
+				{isLoggingOut ? "Logging out..." : "Logout"}
+			</Button>
+		</section>
+	);
+}
+
+function getAuthUserDisplayName(
+	user: { name: string; username?: string } | undefined,
+): string {
+	return user?.name || user?.username || "Device account";
+}
+
+function getAuthUserInitial(name: string): string {
+	return name.trim().charAt(0).toUpperCase() || "?";
+}
+
+function getAuthProviderLabel(provider: string | undefined): string {
+	if (provider === "dev" || provider === "os-user-dev") {
+		return "Signed in with device account";
+	}
+
+	return provider ? `Provider: ${provider}` : "Local app session";
 }
 
 function findMatchingWindowSizePreset(

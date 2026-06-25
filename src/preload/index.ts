@@ -1,4 +1,6 @@
 import { contextBridge, ipcRenderer, webUtils } from "electron";
+import { authIpcChannels } from "../main/auth/auth.channels";
+import type { AuthSession } from "../main/auth/auth.types";
 import { dialogIpcChannels } from "../main/dialog/dialog.channels";
 import type {
 	OpenFileDialogInput,
@@ -31,6 +33,14 @@ const api = {
 		chromeVersion: string;
 		electronVersion: string;
 	}> => ipcRenderer.invoke("get-system-info"),
+
+	auth: {
+		getSession: (): Promise<AuthSession | null> =>
+			ipcRenderer.invoke(authIpcChannels.getSession),
+		signIn: (): Promise<AuthSession> =>
+			ipcRenderer.invoke(authIpcChannels.signIn),
+		signOut: (): Promise<void> => ipcRenderer.invoke(authIpcChannels.signOut),
+	},
 
 	settings: {
 		get: (): Promise<UserSettings> => ipcRenderer.invoke("settings:get"),

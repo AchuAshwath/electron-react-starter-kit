@@ -11,7 +11,10 @@ flowchart LR
 	Tree --> Main["main.tsx createRouter"]
 	Main --> Provider["RouterProvider"]
 	Provider --> Root["__root.tsx"]
+	Root --> Auth["(auth)/route.tsx"]
 	Root --> App["(app)/route.tsx"]
+	Auth --> Login["login.tsx"]
+	Auth --> Signup["signup.tsx"]
 	App --> Pages["index.tsx / settings.tsx"]
 ```
 
@@ -19,14 +22,18 @@ flowchart LR
 
 ```text
 src/renderer/src/routes/
-|-- __root.tsx          # root route, devtools, global outlet
+|-- __root.tsx          # root route, devtools, query-client context
+|-- (auth)/
+|   |-- route.tsx       # auth layout group
+|   |-- login.tsx       # login route
+|   `-- signup.tsx      # signup route
 `-- (app)/
-    |-- route.tsx       # app shell layout and navigation
+    |-- route.tsx       # guarded app shell layout and navigation
     |-- index.tsx       # home route
     `-- settings.tsx    # settings route
 ```
 
-`(app)` is a pathless group. It adds shared layout without adding a URL segment.
+`(auth)` and `(app)` are pathless groups. They add layout and guard behavior without adding URL segments.
 
 ## How It Is Wired
 
@@ -44,7 +51,7 @@ tanstackRouter({
 `src/renderer/src/main.tsx` creates the router and registers its type:
 
 ```ts
-const router = createRouter({ routeTree });
+const router = createRouter({ routeTree, context: { queryClient } });
 
 declare module "@tanstack/react-router" {
 	interface Register {
@@ -56,7 +63,9 @@ declare module "@tanstack/react-router" {
 The root route provides a global outlet and devtools:
 
 ```tsx
-export const Route = createRootRoute({ component: RootLayout });
+export const Route = createRootRouteWithContext<RouterContext>()({
+	component: RootLayout,
+});
 
 function RootLayout() {
 	return (
@@ -112,9 +121,10 @@ Use a pathless group for shared UI without a path segment:
 routes/
 |-- (auth)/
 |   |-- route.tsx      # centered auth layout
-|   `-- login.tsx      # /login
+|   |-- login.tsx      # /login
+|   `-- signup.tsx     # /signup
 `-- (app)/
-    |-- route.tsx      # protected app layout later
+    |-- route.tsx      # protected app layout
     `-- index.tsx      # /
 ```
 

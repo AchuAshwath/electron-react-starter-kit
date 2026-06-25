@@ -205,6 +205,8 @@ Checklist:
 ## Core Guides
 
 - [TanStack Router](tanstack-router.md): route tree, `(app)` layout, pathless groups, route examples, and route checks.
+- [Auth Routing](auth-routing.md): auth/app route groups, guarded app shell, login route, and safe `returnTo`.
+- [Auth Session Contract](auth-session-contract.md): provider-neutral session contract, development auth provider, IPC shape, hooks, and replacement pattern.
 - [TanStack Query](tanstack-query.md): query client, query factories, mutations, cache lifetimes, and testing.
 - [UI Foundation](ui-foundation.md): Tailwind, shadcn-style primitives, component layering, icons, and feedback patterns.
 - [System Info](system-info.md): the smallest complete IPC + Query example for stable process metadata.
@@ -222,6 +224,8 @@ Checklist:
 
 ## Examples / Recipes
 
+- [Auth Provider Contract Spec](examples/auth-provider-contract.md): planned generalized provider interface and sign-in strategies.
+- [Secure Storage Spec](examples/secure-storage.md): planned main-process secret storage for provider secrets.
 - [Auth-ready architecture](examples/auth-ready-architecture.md): provider-neutral auth model with Microsoft Entra/MSAL as an example.
 - [Imported file workflow](examples/imported-file-workflow.md): optional durable file import spec.
 - [Auto-update](examples/auto-update.md): optional update architecture and deployment-dependent choices.

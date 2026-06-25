@@ -1,9 +1,29 @@
-﻿import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+import { authQueries } from "@renderer/core/auth/auth.queries";
+import {
+	createFileRoute,
+	Link,
+	Outlet,
+	redirect,
+} from "@tanstack/react-router";
 import { ThemeSwitcher } from "../../components/theme-switcher";
 import { buttonVariants } from "../../components/ui/button";
 import { cn } from "../../lib/utils";
 
 export const Route = createFileRoute("/(app)")({
+	beforeLoad: async ({ context, location }) => {
+		const session = await context.queryClient.ensureQueryData(
+			authQueries.session(),
+		);
+
+		if (!session) {
+			throw redirect({
+				to: "/login",
+				search: {
+					returnTo: location.href,
+				},
+			});
+		}
+	},
 	component: AppLayout,
 });
 

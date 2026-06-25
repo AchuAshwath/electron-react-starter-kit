@@ -2,6 +2,8 @@ import { join } from "node:path";
 import { electronApp, is, optimizer } from "@electron-toolkit/utils";
 import { app, BrowserWindow, ipcMain, screen } from "electron";
 import icon from "../../resources/icon.png?asset";
+import { registerAuthIpcHandlers } from "./auth/auth.ipc";
+import { DevAuthProvider } from "./auth/dev-auth.provider";
 import { registerDialogIpcHandlers } from "./dialog/dialog.ipc";
 import { createIpcHandlerRegistrar } from "./ipc/ipc-handler";
 import { appLogger, configureAppLogging } from "./logging/logger";
@@ -140,6 +142,9 @@ app.whenReady().then(() => {
 		},
 	});
 
+	const authProvider = new DevAuthProvider();
+
+	registerAuthIpcHandlers(registerIpcHandler, { provider: authProvider });
 	registerSettingsIpcHandlers(registerIpcHandler);
 	registerThemeIpcHandlers(registerIpcHandler);
 	registerDialogIpcHandlers(registerIpcHandler);

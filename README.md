@@ -29,7 +29,7 @@
 
 `electron-react-starter-kit` is a desktop application template for teams that want the Electron security and platform plumbing handled before product work begins.
 
-It ships a preload-first architecture, typed IPC, TanStack Router and Query, persisted settings, desktop-aware theming, native file dialogs, notifications, logging, tests, and packaging scripts. Use it from GitHub with the **Use this template** button, then adapt the app-specific pieces for your client or product. The README is the polished front door; the implementation manual lives in [`docs/`](docs/README.md).
+It ships a preload-first architecture, typed IPC, development auth, TanStack Router and Query, persisted settings, desktop-aware theming, native file dialogs, notifications, logging, tests, and packaging scripts. Use it from GitHub with the **Use this template** button, then adapt the app-specific pieces for your client or product. The README is the polished front door; the implementation manual lives in [`docs/`](docs/README.md).
 
 ## Built With
 
@@ -63,8 +63,9 @@ Discover the core stack driving this starter template:
 
 - Preload-only `window.api` surface for renderer access to Electron capabilities.
 - Typed IPC registrar with Zod input validation and renderer-safe error messages.
-- TanStack Router file routes with a shared `(app)` layout and generated route tree.
+- TanStack Router file routes with `(auth)` and guarded `(app)` layout groups.
 - TanStack Query factories and hooks for IPC-backed renderer state.
+- Provider-neutral auth session contract backed by a development auth provider.
 
 **Desktop platform features**
 
@@ -131,7 +132,7 @@ pnpm ci            # Run the full local verification chain
 Core docs describe features that are already wired into the starter:
 
 - [Documentation index](docs/README.md) for the full reading order.
-- [TanStack Router](docs/tanstack-router.md), [TanStack Query](docs/tanstack-query.md), and [UI Foundation](docs/ui-foundation.md) for renderer app architecture.
+- [TanStack Router](docs/tanstack-router.md), [Auth Routing](docs/auth-routing.md), [Auth Session Contract](docs/auth-session-contract.md), [TanStack Query](docs/tanstack-query.md), and [UI Foundation](docs/ui-foundation.md) for renderer app architecture.
 - [System Info](docs/system-info.md) for the smallest complete IPC + Query example.
 - [Typed IPC](docs/typed-ipc.md) and [Electron Security](docs/electron-security.md) for the main/preload/renderer boundary.
 - [Settings](docs/settings.md), [Theme](docs/theme.md), [File Dialogs and Upload](docs/file-dialogs-and-upload.md), [Notifications](docs/notifications.md), and [Window State](docs/window-state.md) for shipped platform features.
@@ -168,13 +169,12 @@ The roadmap is split into core starter work and optional recipes.
 Core infrastructure next:
 
 - Safe secret storage for tokens, API keys, and sensitive values.
-- Provider-neutral auth scaffold with route guards and typed IPC contracts.
 - Typed environment/configuration guidance.
 - Renderer error boundaries and reliability patterns.
 
 Optional recipes next:
 
-- Microsoft Entra/MSAL auth wiring.
+- Optional provider recipes for Microsoft Entra/MSAL, Google, Auth0/Okta, activation-code, or custom backend auth.
 - Durable imported-file workflow.
 - Auto-update flow.
 - Distribution hardening checklist.
