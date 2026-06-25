@@ -11,8 +11,8 @@ flowchart LR
 	Recipes --> ClientApp
 
 	Foundation --> Security["Security + IPC + settings + tests"]
-	Foundation --> FutureCore["Secrets + auth scaffold + config + reliability"]
-	Recipes --> Auth["MSAL provider wiring"]
+	Foundation --> FutureCore["Auth provider contract + secure storage + config + reliability"]
+	Recipes --> Auth["Provider recipes"]
 	Recipes --> Files["Imported file persistence"]
 	Recipes --> Updates["Auto-update"]
 	Recipes --> Distribution["Distribution hardening"]
@@ -34,26 +34,25 @@ flowchart LR
 - Vitest and Testing Library setup.
 - electron-builder packaging scripts.
 - Documentation split between core guides and optional recipes.
+- Provider-neutral auth session contract with a development auth provider, typed IPC, renderer hooks, and guarded app routes.
 
 ## Core Starter Roadmap
 
 These belong in the starter because most production Electron apps need the pattern.
 
-### Safe secret storage
+### Auth provider contract
 
-Add a main-process secret-storage module for tokens, API keys, passwords, and refresh material. It should be separate from `electron-store` and backed by Electron `safeStorage` or OS credential storage.
+Generalize the auth provider interface so real provider swaps are mostly isolated to main-process provider code. Planned work is specified in [Auth Provider Contract](examples/auth-provider-contract.md):
 
-### Auth scaffold
+- provider metadata such as `id` and `displayName`
+- provider-neutral `AuthSignInInput` strategies
+- IPC validation for sign-in input
+- `DevAuthProvider` support for `{ strategy: "device" }`
+- safe unsupported-strategy errors
 
-Add provider-neutral auth wiring without locking the starter to Microsoft, Auth0, Okta, or another provider:
+### Secure storage foundation
 
-- `(auth)` and protected `(app)` route groups
-- `window.api.auth` preload API
-- `getSession`, `signIn`, `signOut` IPC contracts
-- renderer auth query factories and hooks
-- main-process provider interface
-
-Provider-specific implementation should remain a recipe until a client app chooses one.
+Add a main-process secure-storage module for tokens, provider cache, API keys, activation secrets, and refresh material. It should be separate from `electron-store`, backed initially by Electron `safeStorage`, and follow [Secure Storage](examples/secure-storage.md).
 
 ### Typed config
 
@@ -73,6 +72,7 @@ Add renderer error boundaries, user-friendly fallback UI, crash/reload guidance,
 These should stay in `docs/examples/` unless a specific app chooses to implement them.
 
 - Microsoft Entra/MSAL provider wiring for OAuth 2.0 authorization code with PKCE.
+- Google OAuth, Auth0/Okta, activation-code, OS/domain gate, and custom backend auth recipes.
 - Durable imported-file workflow for apps that need app-owned file storage.
 - Auto-update recipe for apps that choose an update channel and publishing provider.
 - Distribution hardening checklist covering code signing, Electron fuses, custom protocol evaluation, and dependency update policy.

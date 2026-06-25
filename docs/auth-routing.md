@@ -1,6 +1,6 @@
 # Auth Routing
 
-The starter ships an auth route scaffold, not a complete auth system. It gives apps a ready place to build sign-in screens while keeping provider choice, session IPC, token storage, and route guards separate follow-up work.
+The starter ships an auth route group for a local development auth flow. Auth pages stay outside the app shell, while protected app routes live under the `(app)` group.
 
 ## Current Shape
 
@@ -11,12 +11,12 @@ src/renderer/src/routes/
 |   |-- login.tsx      # /login
 |   `-- signup.tsx     # /signup
 `-- (app)/
-    |-- route.tsx      # app shell layout
+    |-- route.tsx      # guarded app shell layout
     |-- index.tsx      # /
     `-- settings.tsx   # /settings
 ```
 
-`(auth)` is a pathless TanStack Router group. It keeps auth pages out of the app shell without adding an `auth` URL segment.
+`(auth)` and `(app)` are pathless TanStack Router groups. They add layout and guard behavior without adding URL segments.
 
 ```mermaid
 flowchart TB
@@ -28,28 +28,37 @@ flowchart TB
 	AppGroup --> Settings["/settings"]
 ```
 
-## AuthForm Pattern
+## Auth Routes
 
-The auth UI is a single composed form component:
-
-```text
-src/renderer/src/components/auth/auth-form.tsx
-```
-
-Routes choose the mode:
+The login and signup routes own navigation and sanitized redirect parsing. They render the reusable auth form and call the auth session hooks.
 
 ```tsx
-<AuthForm mode="login" onSuccess={handleSuccess} returnTo={search.returnTo} />
-<AuthForm mode="signup" onSuccess={handleSuccess} returnTo={search.returnTo} />
+<AuthForm
+	mode="login"
+	onSuccess={handleSignIn}
+	isLoading={signIn.isPending}
+	errorMessage={signIn.error?.message}
+	returnTo={search.returnTo}
+/>
 ```
 
-This keeps login and signup copy, fields, and account-switch links in one component while allowing each route to own navigation and route search parsing.
+The form keeps the standard shadcn auth shape: email, password, forgot-password affordance on login, a disabled primary **Login** or **Create account** scaffold button, and a secondary provider-style action. In the starter, the credential buttons are disabled scaffold controls, and **Continue with device account** creates the development auth session. The email/password controls are UI scaffold only; the shipped auth provider does not verify credentials or create durable accounts.
 
-The form currently uses local submit handling only. It does not create a session, call IPC, store tokens, or contact an identity provider. Provider-specific buttons should be added only when a provider is wired.
+## App Route Guard
+
+The `(app)` layout checks the auth session before rendering protected routes:
+
+```text
+(app)/route.tsx beforeLoad
+  -> ensure auth session through TanStack Query
+  -> redirect missing sessions to /login?returnTo=<current path>
+```
+
+This keeps the guard at the shell boundary instead of duplicating checks in every app route.
 
 ## Safe returnTo Parsing
 
-Both auth routes accept an optional `returnTo` search parameter. The parser runs through `getSafeRedirectUrl`:
+The login and signup routes accept an optional `returnTo` search parameter. The parser runs through `getSafeRedirectUrl`:
 
 ```tsx
 const searchSchema = z.object({
@@ -69,7 +78,7 @@ getSafeRedirectUrl("https://example.com"); // undefined
 getSafeRedirectUrl("//example.com"); // undefined
 ```
 
-This gives future route guards a safe redirect target without creating an open-redirect footgun.
+This prevents open redirects while still letting route guards send users back to their original in-app destination.
 
 ## Why No auth/index.ts Barrel?
 
@@ -81,16 +90,6 @@ import { AuthForm } from "@renderer/components/auth/auth-form";
 
 Add a barrel only when the auth folder grows into a stable public component surface with multiple exports that are commonly consumed together.
 
-## What Comes Next
+## Provider Scope
 
-The following pieces are not implemented in this branch:
-
-- session query factory such as `sessionQueryOptions`
-- auth IPC channels such as `auth:get-session`, `auth:sign-in`, and `auth:sign-out`
-- preload `window.api.auth`
-- main-process provider interface
-- protected `(app)` route guard
-- secret/token storage
-- Microsoft Entra/MSAL PKCE provider wiring
-
-Those should land in focused branches so the starter remains provider-neutral.
+Core auth uses the development auth provider documented in [Auth Session Contract](auth-session-contract.md). Provider-specific integrations such as Microsoft Entra, Google, Auth0/Okta, activation-code, or custom backend auth belong in optional recipes and client apps.

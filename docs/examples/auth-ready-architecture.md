@@ -1,8 +1,8 @@
 # Auth-Ready Architecture
 
-This is an optional recipe. The starter does not currently ship real auth, token storage, route guards, or a provider integration.
+This is an optional recipe. The starter core ships a provider-neutral auth contract and a development auth provider, but it does not ship real OAuth provider integration, token storage, or client-specific identity policy.
 
-The recommended architecture is provider-neutral: the app talks to an auth service interface, and provider-specific code lives behind an adapter.
+The recommended architecture is provider-neutral: the app talks to an auth service interface, the starter uses a development auth adapter by default, and provider-specific code lives behind a replaceable adapter.
 
 ## Mental Model
 
@@ -12,15 +12,16 @@ React login UI
   -> window.api.auth
   -> main auth IPC
   -> AuthProvider adapter
-  -> identity provider
-  -> secure secret storage
+  -> development auth provider or real identity provider
+  -> secure secret storage when real tokens/secrets are persisted
 ```
 
 The renderer should know who is signed in. It should not own raw tokens.
 
 ## Core Concepts
 
-- Identity provider: Microsoft Entra ID, Auth0, Okta, Cognito, Google, or a custom provider.
+- Starter provider: development auth provider that creates an in-memory session from the current OS user.
+- Production identity provider: Microsoft Entra ID, Auth0, Okta, Cognito, Google, activation-code, OS/domain gate, or a custom backend.
 - Protocol: usually OpenID Connect on top of OAuth 2.0.
 - Desktop flow: authorization code with PKCE through the system browser or another native-app-safe browser flow.
 - Session: safe user/account metadata for UI and route guards.
@@ -29,7 +30,7 @@ The renderer should know who is signed in. It should not own raw tokens.
 
 ## Future Provider Interface Concept
 
-This is a planned shape, not an implemented API:
+The core starter API intentionally stays provider-neutral:
 
 ```ts
 type AuthSession = {
@@ -47,6 +48,17 @@ type AuthProvider = {
 	getAccessToken: (scope?: string) => Promise<string>;
 };
 ```
+
+## Provider Recipe Examples
+
+Provider-specific auth should live in docs and client apps, not in starter core. Useful recipes include:
+
+- Microsoft Entra/MSAL with OAuth 2.0 authorization code + PKCE
+- Google OAuth for apps that intentionally choose Google identity
+- Auth0/Okta/Cognito for hosted identity
+- activation-code auth for licensed desktop apps
+- custom backend auth for first-party APIs
+- OS/domain/device gate for managed internal tools
 
 ## Microsoft Entra Example
 
@@ -66,11 +78,12 @@ Desktop apps are public clients. Do not put a client secret in the Electron app.
 A future implementation should add:
 
 - `src/main/auth` service and provider interface
+- development auth provider as the starter default
 - `window.api.auth` methods through preload
 - renderer auth queries and hooks
 - `(auth)` route group for login
 - protected `(app)` layout guard
-- safe secret storage before storing sensitive auth material
+- safe secret storage before storing sensitive auth material for real providers
 
 ## References
 

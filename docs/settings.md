@@ -60,6 +60,11 @@ type UserSettings = {
 };
 ```
 
+## Account Profile Row
+
+The Settings route also shows the current auth session as UI state above the preferences form: an initials avatar, OS session name, session label, and Logout button. This is not stored in `electron-store`; it comes from `useAuthSession()` and the in-memory auth session contract.
+
+Keep this row limited to safe session metadata. Do not display or store tokens, passwords, provider cache blobs, activation secrets, or raw identity-provider responses here.
 ## What Belongs In Settings
 
 Good settings:
