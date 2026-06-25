@@ -15,6 +15,7 @@ const session: AuthSession = {
 const apiMock = {
 	auth: {
 		getSession: vi.fn<Window["api"]["auth"]["getSession"]>(),
+		refreshSession: vi.fn<Window["api"]["auth"]["refreshSession"]>(),
 		signIn: vi.fn<Window["api"]["auth"]["signIn"]>(),
 		signOut: vi.fn<Window["api"]["auth"]["signOut"]>(),
 	},

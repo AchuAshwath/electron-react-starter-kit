@@ -1,4 +1,7 @@
-import type { AuthSession } from "../main/auth/auth.types.ts";
+import type {
+	AuthSession,
+	AuthSignInRequest,
+} from "../main/auth/auth.types.ts";
 import type {
 	OpenFileDialogInput,
 	OpenFileDialogResult,
@@ -32,7 +35,8 @@ declare global {
 
 			auth: {
 				getSession: () => Promise<AuthSession | null>;
-				signIn: () => Promise<AuthSession>;
+				refreshSession: () => Promise<AuthSession | null>;
+				signIn: (request: AuthSignInRequest) => Promise<AuthSession>;
 				signOut: () => Promise<void>;
 			};
 
