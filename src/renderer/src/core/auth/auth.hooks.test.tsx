@@ -3,7 +3,7 @@ import { renderHook, waitFor } from "@testing-library/react";
 import type { ReactNode } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AuthSession } from "../../../../main/auth/auth.types";
-import { useSignIn, useSignOut } from "./auth.hooks";
+import { useRefreshSession, useSignIn, useSignOut } from "./auth.hooks";
 import { authQueries } from "./auth.queries";
 
 const session: AuthSession = {
@@ -19,6 +19,7 @@ const session: AuthSession = {
 const apiMock = {
 	auth: {
 		getSession: vi.fn<Window["api"]["auth"]["getSession"]>(),
+		refreshSession: vi.fn<Window["api"]["auth"]["refreshSession"]>(),
 		signIn: vi.fn<Window["api"]["auth"]["signIn"]>(),
 		signOut: vi.fn<Window["api"]["auth"]["signOut"]>(),
 	},
@@ -56,6 +57,44 @@ describe("auth hooks", () => {
 			expect(queryClient.getQueryData(authQueries.session().queryKey)).toEqual(
 				session,
 			);
+		});
+		expect(apiMock.auth.signIn).toHaveBeenCalledWith({ strategy: "device" });
+	});
+
+	it("writes the refreshed session to the query cache", async () => {
+		const queryClient = new QueryClient({
+			defaultOptions: { queries: { retry: false } },
+		});
+		apiMock.auth.refreshSession.mockResolvedValue(session);
+		const { result } = renderHook(() => useRefreshSession(), {
+			wrapper: createWrapper(queryClient),
+		});
+
+		result.current.mutate();
+
+		await waitFor(() => {
+			expect(queryClient.getQueryData(authQueries.session().queryKey)).toEqual(
+				session,
+			);
+		});
+	});
+
+	it("clears the session query cache when refresh returns null", async () => {
+		const queryClient = new QueryClient({
+			defaultOptions: { queries: { retry: false } },
+		});
+		queryClient.setQueryData(authQueries.session().queryKey, session);
+		apiMock.auth.refreshSession.mockResolvedValue(null);
+		const { result } = renderHook(() => useRefreshSession(), {
+			wrapper: createWrapper(queryClient),
+		});
+
+		result.current.mutate();
+
+		await waitFor(() => {
+			expect(
+				queryClient.getQueryData(authQueries.session().queryKey),
+			).toBeNull();
 		});
 	});
 

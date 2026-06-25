@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer, webUtils } from "electron";
 import { authIpcChannels } from "../main/auth/auth.channels";
-import type { AuthSession } from "../main/auth/auth.types";
+import type { AuthSession, AuthSignInRequest } from "../main/auth/auth.types";
 import { dialogIpcChannels } from "../main/dialog/dialog.channels";
 import type {
 	OpenFileDialogInput,
@@ -37,8 +37,10 @@ const api = {
 	auth: {
 		getSession: (): Promise<AuthSession | null> =>
 			ipcRenderer.invoke(authIpcChannels.getSession),
-		signIn: (): Promise<AuthSession> =>
-			ipcRenderer.invoke(authIpcChannels.signIn),
+		refreshSession: (): Promise<AuthSession | null> =>
+			ipcRenderer.invoke(authIpcChannels.refreshSession),
+		signIn: (request: AuthSignInRequest): Promise<AuthSession> =>
+			ipcRenderer.invoke(authIpcChannels.signIn, request),
 		signOut: (): Promise<void> => ipcRenderer.invoke(authIpcChannels.signOut),
 	},
 
