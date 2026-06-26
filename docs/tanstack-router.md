@@ -11,6 +11,7 @@ flowchart LR
 	Tree --> Main["main.tsx createRouter"]
 	Main --> Provider["RouterProvider"]
 	Provider --> Root["__root.tsx"]
+	Root --> Fallbacks["root fallbacks"]
 	Root --> Auth["(auth)/route.tsx"]
 	Root --> App["(app)/route.tsx"]
 	Auth --> Login["login.tsx"]
@@ -22,13 +23,13 @@ flowchart LR
 
 ```text
 src/renderer/src/routes/
-|-- __root.tsx          # root route, devtools, query-client context
+|-- __root.tsx          # root route, devtools, query-client context, global fallbacks
 |-- (auth)/
-|   |-- route.tsx       # auth layout group
+|   |-- route.tsx       # auth layout group and auth fallbacks
 |   |-- login.tsx       # login route
 |   `-- signup.tsx      # signup route
 `-- (app)/
-    |-- route.tsx       # guarded app shell layout and navigation
+    |-- route.tsx       # guarded app shell layout, navigation, and fallbacks
     |-- index.tsx       # home route
     `-- settings.tsx    # settings route
 ```
@@ -65,6 +66,9 @@ The root route provides a global outlet and devtools:
 ```tsx
 export const Route = createRootRouteWithContext<RouterContext>()({
 	component: RootLayout,
+	errorComponent: RouteErrorView,
+	notFoundComponent: RouteNotFoundView,
+	pendingComponent: RoutePendingView,
 });
 
 function RootLayout() {
@@ -77,6 +81,19 @@ function RootLayout() {
 	);
 }
 ```
+
+
+## Route Fallbacks
+
+The root route wires global error, pending, and not-found components. The `(auth)` and `(app)` layout groups add more specific error and pending components for their areas.
+
+```text
+__root.tsx        -> global error / pending / not-found
+(auth)/route.tsx -> auth error / pending
+(app)/route.tsx  -> app error / pending + session guard
+```
+
+Redirects thrown by TanStack Router are normal control flow. The auth guard uses redirects for missing sessions, while real IPC/query/render failures flow to the nearest error component. See [Error Boundaries](error-boundaries.md).
 
 ## Add A Page To The App Shell
 
@@ -159,6 +176,7 @@ The current starter mostly keeps data fetching in hooks because the shipped rout
 - Do not hand-edit `routeTree.gen.ts`.
 - Prefer pathless groups for app/auth shells.
 - Add route-level navigation only for pages that belong in the global shell.
+- Use route-specific error components only when the shared fallback message is not precise enough.
 
 ## Checks
 
