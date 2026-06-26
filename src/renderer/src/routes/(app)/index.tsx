@@ -62,10 +62,7 @@ function HomeRoute(): React.JSX.Element {
 			})
 			.unwrap();
 
-		showNotification.mutate({
-			title: "File check complete",
-			body: getOpenFileDialogSuccessMessage(checkedResult),
-		});
+		showFileCheckNotification(getOpenFileDialogSuccessMessage(checkedResult));
 	}
 
 	function addDroppedFiles(files: File[]): void {
@@ -75,6 +72,23 @@ function HomeRoute(): React.JSX.Element {
 
 		addSelectedFilePaths(filePaths);
 		showFilesSelectedToast(filePaths.length);
+		void notifyDroppedFiles(filePaths);
+	}
+
+	async function notifyDroppedFiles(filePaths: string[]): Promise<void> {
+		if (filePaths.length === 0) {
+			return;
+		}
+
+		await new Promise((resolve) => setTimeout(resolve, 2000));
+		showFileCheckNotification(getSelectedFilesMessage(filePaths.length));
+	}
+
+	function showFileCheckNotification(message: string): void {
+		showNotification.mutate({
+			title: "File check complete",
+			body: message,
+		});
 	}
 
 	function showFilesSelectedToast(fileCount: number): void {
