@@ -84,7 +84,7 @@ Do not store:
 - document contents
 - raw imported files
 
-Sensitive values belong in a future secret-storage module backed by Electron `safeStorage` or OS credential APIs.
+Sensitive values belong in the main-process secure storage module backed by Electron `safeStorage`, or in a provider-specific OS credential store when a provider SDK requires it.
 
 ## Add A Setting
 

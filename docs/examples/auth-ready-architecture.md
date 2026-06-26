@@ -83,7 +83,7 @@ A future implementation should add:
 - renderer auth queries and hooks
 - `(auth)` route group for login
 - protected `(app)` layout guard
-- safe secret storage before storing sensitive auth material for real providers
+- the shipped secure storage foundation before storing sensitive auth material for real providers
 
 ## References
 

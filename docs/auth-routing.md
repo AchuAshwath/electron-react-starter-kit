@@ -7,16 +7,16 @@ The starter ships an auth route group for a local development auth flow. Auth pa
 ```text
 src/renderer/src/routes/
 |-- (auth)/
-|   |-- route.tsx      # auth layout group
+|   |-- route.tsx      # auth layout group with auth fallbacks
 |   |-- login.tsx      # /login
 |   `-- signup.tsx     # /signup
 `-- (app)/
-    |-- route.tsx      # guarded app shell layout
+    |-- route.tsx      # guarded app shell layout with app fallbacks
     |-- index.tsx      # /
     `-- settings.tsx   # /settings
 ```
 
-`(auth)` and `(app)` are pathless TanStack Router groups. They add layout and guard behavior without adding URL segments.
+`(auth)` and `(app)` are pathless TanStack Router groups. They add layout, guard, and fallback behavior without adding URL segments.
 
 ```mermaid
 flowchart TB
@@ -42,19 +42,43 @@ The login and signup routes own navigation and sanitized redirect parsing. They 
 />
 ```
 
-The form keeps the standard shadcn auth shape: email, password, forgot-password affordance on login, a disabled primary **Login** or **Create account** scaffold button, and a secondary provider-style action. In the starter, the credential buttons are disabled scaffold controls, and **Continue with device account** creates the development auth session. The email/password controls are UI scaffold only; the shipped auth provider does not verify credentials or create durable accounts.
+The form keeps the standard shadcn auth shape: email, password, forgot-password affordance on login, a disabled primary **Login** or **Create account** scaffold button, and a secondary provider-style action. In the starter, the credential buttons are disabled scaffold controls, and **Continue with device account** creates the development auth session.
+
+The email/password controls are UI scaffold only. The shipped provider does not verify credentials or create durable accounts.
 
 ## App Route Guard
 
 The `(app)` layout checks the auth session before rendering protected routes:
 
-```text
-(app)/route.tsx beforeLoad
-  -> ensure auth session through TanStack Query
-  -> redirect missing sessions to /login?returnTo=<current path>
+```tsx
+beforeLoad: async ({ context, location }) => {
+	const session = await context.queryClient.ensureQueryData(
+		authQueries.session(),
+	);
+
+	if (!session) {
+		throw redirect({
+			to: "/login",
+			search: { returnTo: location.href },
+		});
+	}
+}
 ```
 
 This keeps the guard at the shell boundary instead of duplicating checks in every app route.
+
+## Error And Pending Behavior
+
+Auth routes and app routes both wire route-specific fallback components from `route-fallbacks.tsx`.
+
+```text
+missing session      -> redirect to /login
+session check loading -> route pending fallback
+auth IPC failure     -> auth/app error fallback
+unknown URL          -> root not-found fallback
+```
+
+A missing session is expected control flow, not an error. Only failed IPC calls, failed route loaders, or render crashes should reach error boundaries. See [Error Boundaries](error-boundaries.md).
 
 ## Safe returnTo Parsing
 

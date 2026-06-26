@@ -1,12 +1,12 @@
-# Secure Storage Spec
+# Secure Storage Notes
 
-This is a planned core spec. The starter should provide a main-process secure-storage abstraction so real auth providers can persist sensitive material without coupling provider code directly to Electron `safeStorage`.
+The core secure storage module is implemented in `src/main/secure-storage/secure-storage.ts` and documented in [Secure Storage](../secure-storage.md). This recipe explains how real providers can use or replace that foundation.
 
 ## Goal
 
-Make auth 90 percent wired for real providers by separating safe UI session metadata from persisted provider secrets.
+Make auth mostly wired for real providers by separating safe UI session metadata from persisted provider secrets.
 
-`AuthSession` is safe renderer metadata. `SecureStorage` is main-process-only storage for secrets that must survive app restart.
+`AuthSession` is safe renderer metadata. `SecureStorage` is main-process-only storage for secrets or credential metadata that must survive app restart.
 
 ## What Belongs In Secure Storage
 
@@ -21,35 +21,18 @@ Use secure storage for:
 Do not use secure storage for:
 
 - `AuthSession` display metadata
-- current username/display name
 - OAuth public client IDs
 - theme, window bounds, notification preferences
 - non-secret config
 
-## Planned Interface
+## Implemented Adapter
 
-```ts
-type SecureStorage = {
-	isAvailable: () => boolean;
-	get: (key: SecureStorageKey) => Promise<string | null>;
-	set: (key: SecureStorageKey, value: string) => Promise<void>;
-	delete: (key: SecureStorageKey) => Promise<void>;
-	has: (key: SecureStorageKey) => Promise<boolean>;
-};
-
-type SecureStorageKey = `auth:${string}:${string}` | `app:${string}`;
-```
-
-Keys should be namespaced. Provider code should not share token keys across providers.
-
-## Electron safeStorage Adapter
-
-The first implementation can use Electron `safeStorage`:
+The starter implementation uses Electron `safeStorage`:
 
 ```text
 set(key, value)
   -> safeStorage.encryptString(value)
-  -> persist encrypted bytes in app-owned storage
+  -> persist encrypted bytes in app-owned electron-store storage
 
 get(key)
   -> read encrypted bytes
@@ -57,27 +40,27 @@ get(key)
   -> return plaintext only inside main process
 ```
 
-`safeStorage` encrypts and decrypts strings, but it does not choose a persistence backend. The adapter still needs app-owned storage for encrypted values.
+`safeStorage` encrypts and decrypts strings, but it does not choose a persistence backend. The starter persists encrypted values in a dedicated `electron-store` file.
 
 ## Failure Behavior
 
-- If encryption is unavailable, provider restore should fail closed and require sign-in again.
-- Corrupt payloads should be deleted or ignored after logging a safe warning.
+- If encryption is unavailable, provider sign-in or credential persistence should fail safely.
+- Missing or corrupt payloads should resolve to `null` and require sign-in again.
 - Secret values must never be logged.
 - Renderer should receive only generic auth errors.
 
-## Auth Provider Usage
+## Provider Usage
 
 A real provider can use secure storage like this:
 
 ```text
 signIn()
   -> complete provider-specific flow
-  -> store refresh token/provider cache through SecureStorage
+  -> store refresh token/provider cache through AuthCredentialStore or provider SDK storage
   -> return safe AuthSession
 
-restoreSession()
-  -> read provider secret/cache from SecureStorage
+refreshSession()
+  -> read provider secret/cache in main
   -> refresh or validate provider session
   -> return safe AuthSession or null
 
@@ -87,13 +70,4 @@ signOut()
   -> clear in-memory session
 ```
 
-`DevAuthProvider` should not use secure storage because it has no real secret to persist.
-
-## Test Requirements
-
-- encrypt/decrypt happy path
-- missing key returns null
-- delete removes stored value
-- unavailable encryption fails safely
-- corrupt payload handling
-- no secret values in logs or thrown renderer errors
+Provider SDKs may bring their own secure storage. For example, an MSAL-based provider may use an MSAL cache plugin instead of this generic store. That is acceptable as long as secrets stay in the main process and renderer contracts remain stable.
