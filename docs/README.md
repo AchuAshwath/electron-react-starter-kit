@@ -114,6 +114,7 @@ The main process owns:
 - Electron APIs such as `BrowserWindow`, `dialog`, `Notification`, `nativeTheme`, `screen`, and `shell`.
 - Persistence through `electron-store`.
 - Secure storage through Electron `safeStorage` or provider-specific OS-backed credential APIs.
+- Typed config boundaries for main runtime env and renderer public env.
 - IPC handler registration and validation.
 - Production diagnostics and platform side effects.
 
@@ -161,7 +162,8 @@ Use the narrowest state location that fits the lifetime:
 - Component state for local UI-only state.
 - TanStack Query cache for session state that should survive route navigation.
 - `electron-store` for normal durable user preferences.
-- Future secret storage for tokens, API keys, passwords, and refresh material.
+- Secure storage for tokens, API keys, passwords, and refresh material.
+- Typed config for deployment/runtime values that are not user preferences.
 - Main-process services for Electron platform state.
 
 ### Testing convention
@@ -209,6 +211,7 @@ Checklist:
 - [Auth Routing](auth-routing.md): auth/app route groups, guarded app shell, login/signup routes, and safe `returnTo`.
 - [Auth Session Contract](auth-session-contract.md): provider-neutral session contract, `DevAuthProvider`, secure credential restore, IPC shape, hooks, and replacement pattern.
 - [Secure Storage](secure-storage.md): main-process encrypted storage, auth credential namespacing, failure behavior, and provider boundaries.
+- [Config Boundaries](config.md): main runtime config, renderer public env, user settings, and secure storage boundaries.
 - [TanStack Query](tanstack-query.md): query client, query factories, mutations, cache lifetimes, and testing.
 - [UI Foundation](ui-foundation.md): Tailwind, shadcn-style primitives, component layering, icons, and feedback patterns.
 - [System Info](system-info.md): the smallest complete IPC + Query example for stable process metadata.
