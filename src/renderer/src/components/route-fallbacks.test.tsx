@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
 	getErrorMessage,
 	RouteErrorView,
@@ -29,6 +29,10 @@ vi.mock("@tanstack/react-router", async (importOriginal) => {
 	};
 });
 
+afterEach(() => {
+	vi.unstubAllEnvs();
+});
+
 describe("route fallback views", () => {
 	it("renders an error recovery view with details and reset action", async () => {
 		const user = userEvent.setup();
@@ -51,7 +55,7 @@ describe("route fallback views", () => {
 		expect(reset).toHaveBeenCalledTimes(1);
 	});
 
-	it("allows error details to be hidden", async () => {
+	it("allows error details to be hidden in development", async () => {
 		const user = userEvent.setup();
 
 		render(
@@ -61,6 +65,24 @@ describe("route fallback views", () => {
 		await user.click(screen.getByRole("button", { name: "Hide details" }));
 
 		expect(screen.queryByText("No route data")).not.toBeInTheDocument();
+	});
+
+	it("does not expose error details in production", () => {
+		vi.stubEnv("DEV", false);
+
+		render(
+			<RouteErrorView
+				error={new Error("C:/Users/example/secret-token.txt")}
+				reset={vi.fn()}
+			/>,
+		);
+
+		expect(
+			screen.queryByRole("button", { name: "Show details" }),
+		).not.toBeInTheDocument();
+		expect(
+			screen.queryByText("C:/Users/example/secret-token.txt"),
+		).not.toBeInTheDocument();
 	});
 
 	it("renders a starter not found page", () => {

@@ -16,7 +16,8 @@ function RouteErrorView({
 	retryLabel = "Try again",
 	title = "Something went wrong",
 }: RouteErrorViewProps): React.JSX.Element {
-	const [showDetails, setShowDetails] = useState(import.meta.env.DEV);
+	const canShowDetails = import.meta.env.DEV;
+	const [showDetails, setShowDetails] = useState(canShowDetails);
 	const errorMessage = getErrorMessage(error);
 
 	return (
@@ -42,16 +43,18 @@ function RouteErrorView({
 						<HomeIcon aria-hidden="true" />
 						Home
 					</Link>
-					<Button
-						type="button"
-						variant="ghost"
-						onClick={() => setShowDetails((isVisible) => !isVisible)}
-					>
-						{showDetails ? "Hide details" : "Show details"}
-					</Button>
+					{canShowDetails ? (
+						<Button
+							type="button"
+							variant="ghost"
+							onClick={() => setShowDetails((isVisible) => !isVisible)}
+						>
+							{showDetails ? "Hide details" : "Show details"}
+						</Button>
+					) : null}
 				</div>
 
-				{showDetails ? (
+				{canShowDetails && showDetails ? (
 					<pre className="mt-4 max-h-48 overflow-auto rounded-lg border border-border bg-muted/50 p-3 text-xs text-muted-foreground">
 						<code>{errorMessage}</code>
 					</pre>
