@@ -20,7 +20,9 @@
   &middot;
   <a href="docs/roadmap.md">Roadmap</a>
   &middot;
-  <a href="docs/examples/auth-ready-architecture.md">Auth Recipe</a>
+  <a href="docs/packaging.md">Distribution</a>
+  &middot;
+  <a href="docs/examples/auth-provider-recipes.md">Auth Recipes</a>
 </div>
 
 ---
@@ -83,6 +85,8 @@ Discover the core stack driving this starter template:
 - Scoped main-process logging and sanitized Electron event logging.
 - Vitest, Testing Library, jsdom, coverage, Biome, Husky, and commitlint.
 - electron-builder scripts for Windows, macOS, and Linux packages.
+- Packaging guidance for Windows `.exe`, macOS `.dmg`, and Linux AppImage, Debian, and Snap artifacts.
+- GitHub Actions release workflow for building packages and uploading draft GitHub Release assets.
 
 ## Quick Start
 
@@ -140,10 +144,13 @@ Core docs describe features that are already wired into the starter:
 - [Typed IPC](docs/typed-ipc.md) and [Electron Security](docs/electron-security.md) for the main/preload/renderer boundary.
 - [Settings](docs/settings.md), [Theme](docs/theme.md), [File Dialogs and Upload](docs/file-dialogs-and-upload.md), [Notifications](docs/notifications.md), and [Window State](docs/window-state.md) for shipped platform features.
 - [Logging](docs/logging.md), [Testing](docs/testing.md), and [Packaging](docs/packaging.md) for production workflow.
+- [Build and Distribution](docs/packaging.md) explains packaging scripts, generated artifacts, app identity customization, and cross-platform build limits.
 
 Optional recipes live in [`docs/examples/`](docs/examples/). They are intentionally not installed behavior because they depend on app, client, provider, backend, or deployment decisions:
 
 - [Auth-ready architecture](docs/examples/auth-ready-architecture.md)
+- [Auth provider recipes](docs/examples/auth-provider-recipes.md)
+- [GitHub Releases distribution](docs/examples/distribution-github-releases.md)
 - [Imported file workflow](docs/examples/imported-file-workflow.md)
 - [Auto-update](docs/examples/auto-update.md)
 - [Distribution hardening](docs/examples/distribution-hardening.md)
@@ -172,11 +179,9 @@ The roadmap is split into core starter work and optional recipes.
 Core infrastructure next:
 
 - Reliability polish around crash recovery, abnormal exits, and support diagnostics.
-- More provider lifecycle examples built on the shipped auth contract.
 
 Optional recipes next:
 
-- Optional provider recipes for Microsoft Entra/MSAL, Google, Auth0/Okta, activation-code, or custom backend auth.
 - Durable imported-file workflow.
 - Auto-update flow.
 - Distribution hardening checklist.

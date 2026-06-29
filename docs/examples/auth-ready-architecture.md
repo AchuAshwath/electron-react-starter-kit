@@ -1,8 +1,8 @@
 # Auth-Ready Architecture
 
-This is an optional recipe. The starter core ships a provider-neutral auth contract and a development auth provider, but it does not ship real OAuth provider integration, token storage, or client-specific identity policy.
+This is an optional recipe. The starter core ships a provider-neutral auth contract, secure credential metadata storage, guarded routes, renderer hooks, and a development auth provider, but it does not ship real OAuth provider integration, token exchange, or client-specific identity policy.
 
-The recommended architecture is provider-neutral: the app talks to an auth service interface, the starter uses a development auth adapter by default, and provider-specific code lives behind a replaceable adapter.
+The recommended architecture is provider-neutral: the renderer talks to the starter auth hooks, preload exposes `window.api.auth`, main owns the provider lifecycle, and provider-specific code lives behind a replaceable adapter.
 
 ## Mental Model
 
@@ -12,46 +12,56 @@ React login UI
   -> window.api.auth
   -> main auth IPC
   -> AuthProvider adapter
-  -> development auth provider or real identity provider
-  -> secure secret storage when real tokens/secrets are persisted
+  -> DevAuthProvider or real identity provider
+  -> secure storage/provider SDK cache when real credentials are persisted
 ```
 
 The renderer should know who is signed in. It should not own raw tokens.
 
 ## Core Concepts
 
-- Starter provider: development auth provider that creates an in-memory session from the current OS user.
+- Starter provider: `DevAuthProvider`, which signs in with the current device account, stores encrypted provider metadata, restores a safe app session when valid, and clears credentials on logout.
 - Production identity provider: Microsoft Entra ID, Auth0, Okta, Cognito, Google, activation-code, OS/domain gate, or a custom backend.
 - Protocol: usually OpenID Connect on top of OAuth 2.0.
 - Desktop flow: authorization code with PKCE through the system browser or another native-app-safe browser flow.
 - Session: safe user/account metadata for UI and route guards.
 - Token: credential for calling APIs. Keep it in the main process.
-- Secret storage: OS-backed secure storage for sensitive material.
+- Secret storage: OS-backed secure storage or provider SDK storage for sensitive material.
 
-## Future Provider Interface Concept
+## Implemented Provider Interface
 
 The core starter API intentionally stays provider-neutral:
 
 ```ts
+type AuthSignInRequest = {
+	strategy: "device";
+};
+
 type AuthSession = {
-	accountId: string;
-	name?: string;
-	username?: string;
-	tenantId?: string;
+	user: {
+		id: string;
+		name: string;
+		username?: string;
+		provider: string;
+	};
+	issuedAt: string;
 	expiresAt?: string;
 };
 
 type AuthProvider = {
+	id: string;
 	getSession: () => Promise<AuthSession | null>;
-	signIn: () => Promise<AuthSession>;
+	signIn: (request: AuthSignInRequest) => Promise<AuthSession>;
+	refreshSession: () => Promise<AuthSession | null>;
 	signOut: () => Promise<void>;
-	getAccessToken: (scope?: string) => Promise<string>;
 };
 ```
 
+Real providers can extend the sign-in request shape and keep `AuthSession` limited to renderer-safe metadata. Tokens, refresh tokens, provider cache blobs, and activation secrets stay in the main process.
+
 ## Provider Recipe Examples
 
-Provider-specific auth should live in docs and client apps, not in starter core. Useful recipes include:
+Provider-specific auth should live in docs and client apps, not in starter core. Start with the [Auth Provider Recipes](auth-provider-recipes.md) index, then choose the provider shape that matches the app:
 
 - Microsoft Entra/MSAL with OAuth 2.0 authorization code + PKCE
 - Google OAuth for apps that intentionally choose Google identity
@@ -75,15 +85,17 @@ Desktop apps are public clients. Do not put a client secret in the Electron app.
 
 ## Starter Bridge
 
-A future implementation should add:
+The starter already provides the reusable bridge:
 
 - `src/main/auth` service and provider interface
-- development auth provider as the starter default
+- `DevAuthProvider` as the starter default
 - `window.api.auth` methods through preload
 - renderer auth queries and hooks
-- `(auth)` route group for login
+- `(auth)` route group for login/signup
 - protected `(app)` layout guard
-- the shipped secure storage foundation before storing sensitive auth material for real providers
+- secure storage foundation for provider credential metadata
+
+Client apps should replace the main-process provider and provider-specific config while keeping the renderer API, route guards, and Settings logout/profile behavior stable.
 
 ## References
 
