@@ -224,14 +224,16 @@ Checklist:
 - [Window State](window-state.md): bounds restore, off-screen fallback, debounced persistence, and extension points.
 - [Logging](logging.md): scoped main-process logs, event logging, sensitive-data rules, and logger examples.
 - [Testing](testing.md): main service tests, IPC tests, query tests, hook tests, and component tests.
-- [Packaging](packaging.md): build scripts, packaged assets, and packaging boundaries.
+- [Packaging](packaging.md): build scripts, generated artifacts, app identity customization, distribution choices, and cross-platform build limits.
 - [Roadmap](roadmap.md): core starter roadmap and optional recipe roadmap.
 
 ## Examples / Recipes
 
 - [Auth-ready architecture](examples/auth-ready-architecture.md): provider-neutral auth model with Microsoft Entra/MSAL as an example.
+- [Auth Provider Recipes](examples/auth-provider-recipes.md): decision guide for Microsoft, Google, Auth0/Okta/Cognito, backend, activation-code, and device/domain providers.
 - [Auth Provider Contract Notes](examples/auth-provider-contract.md): optional provider strategy ideas that build on the shipped core contract.
 - [Secure Storage Notes](examples/secure-storage.md): optional provider-secret guidance that builds on the shipped secure storage module.
+- [GitHub Releases Distribution](examples/distribution-github-releases.md): manual release flow for uploading packaged artifacts to GitHub Releases.
 - [Imported file workflow](examples/imported-file-workflow.md): optional durable file import spec.
 - [Auto-update](examples/auto-update.md): optional update architecture and deployment-dependent choices.
 - [Distribution hardening](examples/distribution-hardening.md): code signing, fuses, custom protocol, and dependency checklist.

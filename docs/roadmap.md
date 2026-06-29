@@ -13,8 +13,9 @@ flowchart LR
 	Foundation --> Security["Security + IPC + settings + tests"]
 	Foundation --> Auth["Auth contract + secure storage"]
 	Foundation --> Reliability["Route fallbacks + diagnostics"]
+	Foundation --> Docs["distribution + provider docs"]
 	Foundation --> FutureCore["reliability polish"]
-	Recipes --> Providers["Provider recipes"]
+	Recipes --> Providers["provider implementations"]
 	Recipes --> Files["Imported file persistence"]
 	Recipes --> Updates["Auto-update"]
 	Recipes --> Distribution["Distribution hardening"]
@@ -40,6 +41,8 @@ flowchart LR
 - Provider-neutral auth session contract with `DevAuthProvider`, typed IPC, renderer hooks, secure credential metadata, session restore/refresh, Settings profile/logout, and guarded app routes.
 - Main-process secure storage module backed by Electron `safeStorage` and encrypted `electron-store` blobs.
 - Typed config boundaries for main runtime env, renderer public env, settings, and secure storage.
+- Distribution docs and GitHub Actions workflow for current electron-builder outputs and draft GitHub Releases delivery.
+- Provider recipe docs for Microsoft Entra/MSAL, Google OAuth, Auth0/Okta/Cognito, custom backend auth, activation-code auth, and OS/domain/device gates.
 
 ## Core Starter Roadmap
 
@@ -54,25 +57,14 @@ Extend the shipped route fallback foundation with:
 - support bundle guidance for logs and app metadata
 - user-facing recovery patterns for repeated failures
 
-### Provider lifecycle examples
-
-The core auth foundation is implemented. Future core docs or examples can show how to adapt the same contract for common provider shapes without installing a provider into the starter by default:
-
-- OAuth authorization-code with PKCE
-- backend session exchange
-- credentials form submission
-- activation-code flow
-- device/domain policy
-
 ## Optional Recipe Roadmap
 
 These should stay in `docs/examples/` unless a specific app chooses to implement them.
 
-- Microsoft Entra/MSAL provider wiring for OAuth 2.0 authorization code with PKCE.
-- Google OAuth, Auth0/Okta, activation-code, OS/domain gate, and custom backend auth recipes.
+- Provider-specific implementation examples for Microsoft Entra/MSAL, Google OAuth, Auth0/Okta/Cognito, activation-code, OS/domain gate, or custom backend auth if the starter later chooses to include sample code.
 - Durable imported-file workflow for apps that need app-owned file storage.
 - Auto-update recipe for apps that choose an update channel and publishing provider.
-- Distribution hardening checklist covering code signing, Electron fuses, custom protocol evaluation, and dependency update policy.
+- Distribution hardening guidance covering code signing, Electron fuses, custom protocol evaluation, and dependency update policy.
 
 ## Decision Rule
 
