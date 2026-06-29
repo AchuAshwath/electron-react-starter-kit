@@ -11,8 +11,10 @@ flowchart LR
 	Recipes --> ClientApp
 
 	Foundation --> Security["Security + IPC + settings + tests"]
-	Foundation --> FutureCore["Auth provider contract + secure storage + config + reliability"]
-	Recipes --> Auth["Provider recipes"]
+	Foundation --> Auth["Auth contract + secure storage"]
+	Foundation --> Reliability["Route fallbacks + diagnostics"]
+	Foundation --> FutureCore["typed config + reliability polish"]
+	Recipes --> Providers["Provider recipes"]
 	Recipes --> Files["Imported file persistence"]
 	Recipes --> Updates["Auto-update"]
 	Recipes --> Distribution["Distribution hardening"]
@@ -24,6 +26,7 @@ flowchart LR
 - Typed IPC registrar with trusted sender validation and sanitized errors.
 - Preload-first renderer API.
 - TanStack Router file-based routing.
+- Root, auth, and app route error/pending/not-found fallbacks.
 - TanStack Query factories and hooks.
 - Settings persistence through `electron-store`.
 - Desktop-aware theme switching.
@@ -34,25 +37,12 @@ flowchart LR
 - Vitest and Testing Library setup.
 - electron-builder packaging scripts.
 - Documentation split between core guides and optional recipes.
-- Provider-neutral auth session contract with a development auth provider, typed IPC, renderer hooks, and guarded app routes.
+- Provider-neutral auth session contract with `DevAuthProvider`, typed IPC, renderer hooks, secure credential metadata, session restore/refresh, Settings profile/logout, and guarded app routes.
+- Main-process secure storage module backed by Electron `safeStorage` and encrypted `electron-store` blobs.
 
 ## Core Starter Roadmap
 
 These belong in the starter because most production Electron apps need the pattern.
-
-### Auth provider contract
-
-Generalize the auth provider interface so real provider swaps are mostly isolated to main-process provider code. Planned work is specified in [Auth Provider Contract](examples/auth-provider-contract.md):
-
-- provider metadata such as `id` and `displayName`
-- provider-neutral `AuthSignInInput` strategies
-- IPC validation for sign-in input
-- `DevAuthProvider` support for `{ strategy: "device" }`
-- safe unsupported-strategy errors
-
-### Secure storage foundation
-
-Add a main-process secure-storage module for tokens, provider cache, API keys, activation secrets, and refresh material. It should be separate from `electron-store`, backed initially by Electron `safeStorage`, and follow [Secure Storage](examples/secure-storage.md).
 
 ### Typed config
 
@@ -63,9 +53,24 @@ Add documented config boundaries for:
 - secrets that must not ship in renderer bundles
 - `.env.example` and validation strategy
 
-### Reliability
+### Reliability polish
 
-Add renderer error boundaries, user-friendly fallback UI, crash/reload guidance, and abnormal-exit diagnostics.
+Extend the shipped route fallback foundation with:
+
+- crash/reload guidance
+- abnormal-exit diagnostics
+- support bundle guidance for logs and app metadata
+- user-facing recovery patterns for repeated failures
+
+### Provider lifecycle examples
+
+The core auth foundation is implemented. Future core docs or examples can show how to adapt the same contract for common provider shapes without installing a provider into the starter by default:
+
+- OAuth authorization-code with PKCE
+- backend session exchange
+- credentials form submission
+- activation-code flow
+- device/domain policy
 
 ## Optional Recipe Roadmap
 

@@ -2,6 +2,7 @@ import { useAuthSession, useSignOut } from "@renderer/core/auth/auth.hooks";
 import { createFileRoute, useRouter } from "@tanstack/react-router";
 import { type LucideIcon, MonitorIcon, MoonIcon, SunIcon } from "lucide-react";
 import { toast } from "sonner";
+import { RetryNotice } from "../../components/retry-notice";
 import { Button } from "../../components/ui/button";
 import {
 	Select,
@@ -128,6 +129,28 @@ function SettingsRoute(): React.JSX.Element {
 		}
 	}
 
+	if (settingsQuery.isError) {
+		return (
+			<div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8">
+				<AccountSection
+					name={getAuthUserDisplayName(authUser)}
+					provider={getAuthProviderLabel(authUser?.provider)}
+					isLoggingOut={signOut.isPending}
+					onLogout={() => {
+						void handleSignOut();
+					}}
+				/>
+				<RetryNotice
+					title="Could not load settings"
+					description="The renderer could not read saved settings from the main process. Retry before changing preferences."
+					isRetrying={settingsQuery.isFetching}
+					onRetry={() => {
+						void settingsQuery.refetch();
+					}}
+				/>
+			</div>
+		);
+	}
 	async function setNotificationsEnabled(enabled: boolean): Promise<void> {
 		let permission: Awaited<
 			ReturnType<typeof setDesktopNotifications.mutateAsync>
@@ -214,13 +237,24 @@ function SettingsRoute(): React.JSX.Element {
 							: "Unavailable on this system."
 					}
 				>
-					<NotificationPreference
-						enabled={desktopNotificationsEnabled}
-						isBusy={isUpdatingNotifications}
-						isSupported={notificationsSupported}
-						onDisable={() => void setNotificationsEnabled(false)}
-						onEnable={() => void setNotificationsEnabled(true)}
-					/>
+					{notificationPermissionQuery.isError ? (
+						<RetryNotice
+							title="Could not load notification permission"
+							description="Retry the permission check before changing desktop notification preferences."
+							isRetrying={notificationPermissionQuery.isFetching}
+							onRetry={() => {
+								void notificationPermissionQuery.refetch();
+							}}
+						/>
+					) : (
+						<NotificationPreference
+							enabled={desktopNotificationsEnabled}
+							isBusy={isUpdatingNotifications}
+							isSupported={notificationsSupported}
+							onDisable={() => void setNotificationsEnabled(false)}
+							onEnable={() => void setNotificationsEnabled(true)}
+						/>
+					)}
 				</SettingsRow>
 			</div>
 		</div>

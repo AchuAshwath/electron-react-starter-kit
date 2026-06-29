@@ -1,71 +1,77 @@
-# Auth Provider Contract Spec
+# Auth Provider Contract Notes
 
-This is a planned core spec. The goal is to make auth provider changes mostly isolated to main-process provider code while keeping renderer routes, hooks, Settings logout/profile, and route guards stable.
+The core auth provider contract is implemented in `src/main/auth/auth.types.ts`. This recipe explains how a client app can extend that contract for real providers without rewriting renderer auth routes, hooks, IPC consumers, or Settings logout.
 
-## Goal
-
-The starter should fake the shape of a production auth provider without faking security. `DevAuthProvider` remains a development provider, but it should exercise the same contract that OAuth, activation-code, backend, or local-only providers will use later.
-
-## Planned Provider Contract
+## Implemented Core Contract
 
 ```ts
+type AuthSignInRequest = {
+	strategy: "device";
+};
+
 type AuthProvider = {
 	id: string;
-	displayName: string;
 	getSession: () => Promise<AuthSession | null>;
-	signIn: (input: AuthSignInInput) => Promise<AuthSession>;
+	signIn: (request: AuthSignInRequest) => Promise<AuthSession>;
+	refreshSession: () => Promise<AuthSession | null>;
 	signOut: () => Promise<void>;
-	restoreSession?: () => Promise<AuthSession | null>;
 };
 ```
 
-`id` is used for safe logs and session metadata. `displayName` is for docs/admin diagnostics, not for secrets. `restoreSession` is optional because not every provider persists credentials.
+The starter default is `DevAuthProvider`. It supports `{ strategy: "device" }`, stores provider credential metadata through secure storage, restores a session when the current OS user still matches the stored credential, refreshes by revalidating that credential, and deletes credential metadata on logout.
 
-## Planned Sign-In Input
+## Why This Helps Provider Swaps
 
-```ts
-type AuthSignInInput =
-	| { strategy: "device" }
-	| { strategy: "credentials"; email: string; password: string }
-	| { strategy: "oauth"; provider?: string }
-	| { strategy: "activation-code"; code: string };
-```
-
-The starter should validate this at the IPC boundary with Zod. Providers may support only a subset of strategies and should reject unsupported strategies with a renderer-safe error.
-
-## DevAuthProvider Behavior
-
-For the starter default:
+Most real providers need the same lifecycle:
 
 ```text
-signIn({ strategy: "device" })
-  -> read current OS username in main
-  -> create safe AuthSession metadata
-  -> keep session in memory
+signIn()
+  -> complete provider-specific verification
+  -> persist provider credential/cache in main process
+  -> return safe AuthSession metadata
 
-signIn(other strategy)
-  -> reject with a safe unsupported-strategy error
+getSession()
+  -> return memory first
+  -> restore from provider credential/cache if possible
+
+refreshSession()
+  -> validate or renew provider credential/cache
+  -> return a safe AuthSession or null
+
+signOut()
+  -> revoke provider session if needed
+  -> delete provider credential/cache
+  -> clear memory
 ```
 
-`DevAuthProvider` should not store secrets, tokens, passwords, or fake OAuth data.
-
-## Renderer Contract
-
-Renderer hooks stay generic:
+The renderer should not change for most provider swaps. It should continue to use:
 
 ```ts
 useAuthSession();
 useSignIn();
+useRefreshSession();
 useSignOut();
 ```
 
-`useSignIn()` should accept provider-neutral input:
+## Optional Strategy Expansion
+
+A client app may expand `AuthSignInRequest` when it adds a real provider:
 
 ```ts
-await signIn.mutateAsync({ strategy: "device" });
+type AuthSignInRequest =
+	| { strategy: "device" }
+	| { strategy: "credentials"; email: string; password: string }
+	| { strategy: "oauth"; provider: "google" | "microsoft" }
+	| { strategy: "activation-code"; code: string };
 ```
 
-Login/signup UI can keep email/password fields as scaffold controls, but the only working starter action should call the supported `device` strategy until a real provider is wired.
+When adding strategies:
+
+- update the Zod schema at the IPC boundary
+- keep provider errors renderer-safe
+- keep secrets in the main process
+- avoid putting tokens or provider cache blobs in `AuthSession`
+- add provider tests for supported and unsupported strategies
 
 ## Provider Swap Rule
 
@@ -73,8 +79,8 @@ A client provider should be able to replace only:
 
 - provider class
 - sign-in strategy implementation
-- optional secure-storage usage
-- provider-specific docs/config
+- provider-specific secure storage usage
+- provider-specific config and docs
 
 These should remain stable:
 
@@ -83,7 +89,7 @@ These should remain stable:
 - TanStack Query auth hooks
 - app route guard
 - auth route redirect behavior
-- Settings logout/profile session display
+- Settings profile/logout session display
 
 ## Test Requirements
 

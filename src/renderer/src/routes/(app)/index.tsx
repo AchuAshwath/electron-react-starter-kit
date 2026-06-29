@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { toast } from "sonner";
 import electronLogo from "../../assets/electron.svg";
+import { RetryNotice } from "../../components/retry-notice";
 import { Badge } from "../../components/ui/badge";
 import { FileUpload } from "../../components/ui/file-upload";
 import {
@@ -61,10 +62,7 @@ function HomeRoute(): React.JSX.Element {
 			})
 			.unwrap();
 
-		showNotification.mutate({
-			title: "File check complete",
-			body: getOpenFileDialogSuccessMessage(checkedResult),
-		});
+		showFileCheckNotification(getOpenFileDialogSuccessMessage(checkedResult));
 	}
 
 	function addDroppedFiles(files: File[]): void {
@@ -74,6 +72,23 @@ function HomeRoute(): React.JSX.Element {
 
 		addSelectedFilePaths(filePaths);
 		showFilesSelectedToast(filePaths.length);
+		void notifyDroppedFiles(filePaths);
+	}
+
+	async function notifyDroppedFiles(filePaths: string[]): Promise<void> {
+		if (filePaths.length === 0) {
+			return;
+		}
+
+		await new Promise((resolve) => setTimeout(resolve, 2000));
+		showFileCheckNotification(getSelectedFilesMessage(filePaths.length));
+	}
+
+	function showFileCheckNotification(message: string): void {
+		showNotification.mutate({
+			title: "File check complete",
+			body: message,
+		});
 	}
 
 	function showFilesSelectedToast(fileCount: number): void {
@@ -103,25 +118,40 @@ function HomeRoute(): React.JSX.Element {
 							A secure Vite + React desktop template with typed IPC, persisted
 							settings, TanStack Router, and TanStack Query already wired in.
 						</p>
-						<div className="flex flex-wrap justify-center gap-2">
-							<TechTag
-								label="Electron"
-								value={
-									systemInfo ? `v${systemInfo.electronVersion}` : "Loading"
-								}
-								className="border-[#47848f]/30 bg-[#47848f]/10 text-[#2f6670] dark:text-[#9fe7f2]"
-							/>
-							<TechTag
-								label="Chromium"
-								value={systemInfo ? `v${systemInfo.chromeVersion}` : "Loading"}
-								className="border-[#4285f4]/30 bg-[#4285f4]/10 text-[#2458a8] dark:text-[#9fc2ff]"
-							/>
-							<TechTag
-								label="Node"
-								value={systemInfo ? `v${systemInfo.nodeVersion}` : "Loading"}
-								className="border-[#6cc24a]/30 bg-[#6cc24a]/10 text-[#347a22] dark:text-[#b9f2a8]"
-							/>
-						</div>
+						{systemInfoQuery.isError ? (
+							<div className="w-full max-w-xl">
+								<RetryNotice
+									title="Could not load system details"
+									description="The renderer could not read runtime information from the main process. Retry the request to refresh the version tags."
+									isRetrying={systemInfoQuery.isFetching}
+									onRetry={() => {
+										void systemInfoQuery.refetch();
+									}}
+								/>
+							</div>
+						) : (
+							<div className="flex flex-wrap justify-center gap-2">
+								<TechTag
+									label="Electron"
+									value={
+										systemInfo ? `v${systemInfo.electronVersion}` : "Loading"
+									}
+									className="border-[#47848f]/30 bg-[#47848f]/10 text-[#2f6670] dark:text-[#9fe7f2]"
+								/>
+								<TechTag
+									label="Chromium"
+									value={
+										systemInfo ? `v${systemInfo.chromeVersion}` : "Loading"
+									}
+									className="border-[#4285f4]/30 bg-[#4285f4]/10 text-[#2458a8] dark:text-[#9fc2ff]"
+								/>
+								<TechTag
+									label="Node"
+									value={systemInfo ? `v${systemInfo.nodeVersion}` : "Loading"}
+									className="border-[#6cc24a]/30 bg-[#6cc24a]/10 text-[#347a22] dark:text-[#b9f2a8]"
+								/>
+							</div>
+						)}
 					</div>
 				</section>
 

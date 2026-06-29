@@ -44,4 +44,41 @@ if (root) {
 			</QueryClientProvider>
 		</StrictMode>,
 	);
+} else {
+	renderMissingRootFallback();
+}
+
+function renderMissingRootFallback(): void {
+	const fallback = document.createElement("main");
+	const panel = document.createElement("section");
+	const title = document.createElement("h1");
+	const description = document.createElement("p");
+
+	fallback.setAttribute("role", "alert");
+	fallback.style.minHeight = "100svh";
+	fallback.style.display = "grid";
+	fallback.style.placeItems = "center";
+	fallback.style.padding = "24px";
+	fallback.style.fontFamily = "system-ui, sans-serif";
+	fallback.style.background = "#fff";
+	fallback.style.color = "#171717";
+
+	panel.style.maxWidth = "420px";
+	panel.style.border = "1px solid #e5e5e5";
+	panel.style.borderRadius = "12px";
+	panel.style.padding = "24px";
+
+	title.textContent = "Could not start renderer";
+	title.style.margin = "0";
+	title.style.fontSize = "18px";
+
+	description.textContent =
+		"The app shell is missing its root element. Check the renderer HTML entrypoint.";
+	description.style.margin = "8px 0 0";
+	description.style.color = "#525252";
+	description.style.lineHeight = "1.5";
+
+	panel.append(title, description);
+	fallback.append(panel);
+	document.body.replaceChildren(fallback);
 }

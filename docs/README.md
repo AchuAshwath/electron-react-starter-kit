@@ -6,7 +6,7 @@ Core guides describe behavior that exists in the starter today. Optional recipes
 
 ## Architecture Mental Model
 
-The architecture is not a single left-to-right chain. It is a process-boundary design: renderer code stays web-like, preload is the typed bridge, and the main process owns Electron capabilities, persistence, logging, and future secrets.
+The architecture is not a single left-to-right chain. It is a process-boundary design: renderer code stays web-like, preload is the typed bridge, and the main process owns Electron capabilities, persistence, logging, and secrets.
 
 ```mermaid
 flowchart TB
@@ -35,7 +35,7 @@ flowchart TB
 
 	subgraph State["Main-owned state"]
 		Settings["electron-store preferences"]
-		Secrets["future safeStorage secrets"]
+		Secrets["safeStorage-backed secure storage"]
 	end
 
 	subgraph Platform["Electron and OS capabilities"]
@@ -58,7 +58,7 @@ flowchart TB
 	Services --> Shell
 ```
 
-Dotted arrows mark important policy boundaries: IPC calls pass trusted-sender and Zod validation before feature handlers run, and sensitive values should move through a future secret-storage path rather than normal settings.
+Dotted arrows mark important policy boundaries: IPC calls pass trusted-sender and Zod validation before feature handlers run, and sensitive values should move through a secure-storage path rather than normal settings.
 
 The renderer is treated like a web app. Electron capabilities stay in main or preload, and renderer code receives a narrow typed API through `window.api`. If a feature needs Electron, storage, or OS access, model it as a main-owned capability first and then expose the smallest renderer API that can drive it.
 
@@ -113,7 +113,7 @@ The main process owns:
 
 - Electron APIs such as `BrowserWindow`, `dialog`, `Notification`, `nativeTheme`, `screen`, and `shell`.
 - Persistence through `electron-store`.
-- Future secret storage through Electron `safeStorage` or OS-backed credential APIs.
+- Secure storage through Electron `safeStorage` or provider-specific OS-backed credential APIs.
 - IPC handler registration and validation.
 - Production diagnostics and platform side effects.
 
@@ -204,9 +204,11 @@ Checklist:
 
 ## Core Guides
 
-- [TanStack Router](tanstack-router.md): route tree, `(app)` layout, pathless groups, route examples, and route checks.
-- [Auth Routing](auth-routing.md): auth/app route groups, guarded app shell, login route, and safe `returnTo`.
-- [Auth Session Contract](auth-session-contract.md): provider-neutral session contract, development auth provider, IPC shape, hooks, and replacement pattern.
+- [TanStack Router](tanstack-router.md): route tree, `(app)` layout, pathless groups, route examples, fallbacks, and route checks.
+- [Error Boundaries](error-boundaries.md): root/auth/app route fallbacks, retry UI, not-found UI, and redirect behavior.
+- [Auth Routing](auth-routing.md): auth/app route groups, guarded app shell, login/signup routes, and safe `returnTo`.
+- [Auth Session Contract](auth-session-contract.md): provider-neutral session contract, `DevAuthProvider`, secure credential restore, IPC shape, hooks, and replacement pattern.
+- [Secure Storage](secure-storage.md): main-process encrypted storage, auth credential namespacing, failure behavior, and provider boundaries.
 - [TanStack Query](tanstack-query.md): query client, query factories, mutations, cache lifetimes, and testing.
 - [UI Foundation](ui-foundation.md): Tailwind, shadcn-style primitives, component layering, icons, and feedback patterns.
 - [System Info](system-info.md): the smallest complete IPC + Query example for stable process metadata.
@@ -224,9 +226,9 @@ Checklist:
 
 ## Examples / Recipes
 
-- [Auth Provider Contract Spec](examples/auth-provider-contract.md): planned generalized provider interface and sign-in strategies.
-- [Secure Storage Spec](examples/secure-storage.md): planned main-process secret storage for provider secrets.
 - [Auth-ready architecture](examples/auth-ready-architecture.md): provider-neutral auth model with Microsoft Entra/MSAL as an example.
+- [Auth Provider Contract Notes](examples/auth-provider-contract.md): optional provider strategy ideas that build on the shipped core contract.
+- [Secure Storage Notes](examples/secure-storage.md): optional provider-secret guidance that builds on the shipped secure storage module.
 - [Imported file workflow](examples/imported-file-workflow.md): optional durable file import spec.
 - [Auto-update](examples/auto-update.md): optional update architecture and deployment-dependent choices.
 - [Distribution hardening](examples/distribution-hardening.md): code signing, fuses, custom protocol, and dependency checklist.
