@@ -1,6 +1,8 @@
 # Packaging
 
-The starter uses `electron-builder` for distributable app builds and `electron-vite` for compiling main, preload, and renderer bundles.
+The starter uses `electron-vite` to compile main, preload, and renderer bundles, then `electron-builder` to create platform installers and app artifacts.
+
+Packaging is core starter infrastructure. Distribution choices such as GitHub Releases, private portals, enterprise deployment, auto-update, signing, and notarization are app decisions documented as recipes.
 
 ## Build Pipeline
 
@@ -9,85 +11,92 @@ flowchart LR
 	Source["src/main + src/preload + src/renderer"] --> EVite["electron-vite build"]
 	EVite --> Out["out/"]
 	Out --> Builder["electron-builder"]
-	Builder --> Package["platform package"]
-	BuildAssets["build/"] --> Builder
-	Resources["resources/"] --> Builder
+	Builder --> Dist["dist/ artifacts"]
+	BuildAssets["build/ icons + entitlements"] --> Builder
+	Resources["resources/ runtime assets"] --> Builder
 ```
 
 ## Scripts
 
 ```bash
-pnpm build         # typecheck, then electron-vite build
-pnpm build:unpack  # build and create unpacked app directory
-pnpm build:win     # Windows package
-pnpm build:mac     # macOS package
-pnpm build:linux   # Linux package
+pnpm build         # typecheck, then compile main/preload/renderer bundles
+pnpm build:unpack  # build and create an unpacked app directory for smoke testing
+pnpm build:win     # build Windows artifacts from electron-builder win config
+pnpm build:mac     # build macOS artifacts from electron-builder mac/dmg config
+pnpm build:linux   # build Linux artifacts from electron-builder linux config
 ```
 
-## Config Files
+Use `build:unpack` when checking packaged runtime behavior locally. Use platform builds when producing release candidates.
+
+The repository also includes [`.github/workflows/release.yml`](../.github/workflows/release.yml), which runs those platform builds on GitHub-hosted runners and uploads the resulting installers/packages to a draft GitHub Release.
+
+## Current Artifacts
+
+The current `electron-builder.yml` is configured for these targets:
 
 ```text
-electron.vite.config.ts  # main, preload, renderer build configuration
-electron-builder.yml     # packaging configuration
-build/                   # platform icons, entitlements, build resources
-resources/               # runtime app assets
-out/                     # generated build output
+Windows  -> NSIS setup .exe
+macOS    -> DMG .dmg
+Linux    -> AppImage, Snap, Debian .deb
 ```
 
-## electron-vite Responsibilities
+Expected names follow `electron-builder.yml` templates and package metadata. Examples:
 
-`electron.vite.config.ts` owns:
-
-- main-process bundling
-- preload bundling
-- renderer Vite config
-- Tailwind plugin setup
-- TanStack Router plugin setup
-- renderer path aliases
-- dependency externalization choices
-
-Renderer aliases include:
-
-```ts
-resolve: {
-	alias: {
-		"@renderer": resolve("src/renderer/src"),
-		components: resolve("src/renderer/src/components"),
-		ui: resolve("src/renderer/src/components/ui"),
-		lib: resolve("src/renderer/src/lib"),
-	},
-}
+```text
+dist/electron-react-starter-kit-1.0.0-setup.exe
+dist/electron-react-starter-kit-1.0.0.dmg
+dist/electron-react-starter-kit-1.0.0.AppImage
+dist/electron-react-starter-kit_1.0.0_amd64.deb
+dist/electron-react-starter-kit_1.0.0_amd64.snap
 ```
 
-## electron-builder Responsibilities
+Treat names as examples. Exact file names depend on package version, platform, architecture, target, and `electron-builder.yml` artifact templates.
 
-`electron-builder.yml` owns packaging concerns such as app metadata, icons, resources, platform targets, and build output. Keep product-specific app names, publisher metadata, signing identity, and update publishing choices out of generic starter assumptions until the app needs them.
+## What To Customize For A Client App
 
-## Packaging Boundary
+Before a real release, replace starter metadata:
 
-Core starter packaging includes build scripts and baseline config. These are intentionally not core behavior:
+- `package.json`: `name`, `version`, `description`, `author`, `homepage`
+- `electron-builder.yml`: `appId`, `productName`, executable name, artifact names, maintainer, category
+- `build/`: platform icons, entitlements, and signing-related resources
+- `resources/`: runtime assets bundled with the packaged app
+- docs/release notes: product-specific install and support instructions
 
-- auto-update publishing provider
-- code signing identity
-- enterprise deployment channel
-- notarization credentials
-- forced update policy
+Keep secrets and signing credentials out of tracked config. Use CI secrets or local secure storage according to the release process.
 
-Use the optional recipes when a client app is ready:
+## Cross-Platform Build Limits
 
-- [Auto-update](examples/auto-update.md)
-- [Distribution hardening](examples/distribution-hardening.md)
+Do not assume one machine can produce every production-ready artifact.
 
-## Release Checklist For A Client App
+electron-builder can build multiple targets, but platform signing and native dependencies affect what is practical:
 
-1. Replace app name, app ID, icons, and publisher metadata.
-2. Confirm production CSP and loading strategy.
-3. Decide whether auto-update is used.
-4. Add signing and notarization configuration when distributing externally.
-5. Run `pnpm ci` and a platform package build.
-6. Smoke-test the packaged app, not just dev mode.
+- macOS signing and notarization require macOS and Apple credentials.
+- Windows signing requires a Windows code signing certificate or compatible signing setup.
+- Linux packages may require Linux tooling or containerized builders.
+- Native dependencies may need target-platform rebuilds.
+
+For a serious release, build and smoke-test each platform on that platform or on a purpose-built CI runner.
+
+## Release Candidate Checklist
+
+1. Confirm app identity, icons, package metadata, and version.
+2. Run the project verification command used by the repo, such as `pnpm ci`.
+3. Build the target platform artifacts.
+4. Install or run the packaged app, not only the dev server.
+5. Verify login/session restore, settings persistence, native dialogs, notifications, and theme behavior in the packaged app.
+6. If using the release workflow, review the draft GitHub Release assets before publishing.
+7. Attach only intentional release artifacts to the chosen distribution channel.
+8. Keep signing/notarization status clear in the release notes.
+
+## Distribution Recipes
+
+- [GitHub Releases distribution](examples/distribution-github-releases.md): manual release flow for attaching installers/packages to GitHub Releases.
+- [Distribution hardening](examples/distribution-hardening.md): signing, notarization, fuses, protocol review, dependency policy, and release posture.
+- [Auto-update](examples/auto-update.md): optional runtime updater architecture when an app chooses an update channel.
 
 ## References
 
 - electron-builder: https://www.electron.build/
+- electron-builder multi-platform build: https://www.electron.build/multi-platform-build
+- electron-builder code signing: https://www.electron.build/code-signing
 - electron-vite: https://electron-vite.org/
