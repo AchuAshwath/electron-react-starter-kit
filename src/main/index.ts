@@ -4,6 +4,7 @@ import { app, BrowserWindow, ipcMain, screen } from "electron";
 import icon from "../../resources/icon.png?asset";
 import { registerAuthIpcHandlers } from "./auth/auth.ipc";
 import { DevAuthProvider } from "./auth/dev-auth.provider";
+import { loadAppConfig } from "./config/app-config";
 import { registerDialogIpcHandlers } from "./dialog/dialog.ipc";
 import { createIpcHandlerRegistrar } from "./ipc/ipc-handler";
 import { appLogger, configureAppLogging } from "./logging/logger";
@@ -28,7 +29,9 @@ import {
 	restoreWindowBounds,
 } from "./window/window-state";
 
-configureAppLogging({ isDev: is.dev });
+const appConfig = loadAppConfig(process.env);
+
+configureAppLogging({ consoleLevel: appConfig.logLevel, isDev: is.dev });
 
 function createWindow(): void {
 	const settings = getSettings();
@@ -76,8 +79,8 @@ function createWindow(): void {
 
 	// HMR for renderer base on electron-vite cli.
 	// Load the remote URL for development or the local html file for production.
-	if (is.dev && process.env.ELECTRON_RENDERER_URL) {
-		const rendererUrl = new URL(process.env.ELECTRON_RENDERER_URL);
+	if (is.dev && appConfig.rendererDevUrl) {
+		const rendererUrl = new URL(appConfig.rendererDevUrl.toString());
 
 		if (!isAllowedDevRendererUrl(rendererUrl)) {
 			throw new Error("Dev renderer URL must use HTTP on a loopback host.");
@@ -105,7 +108,7 @@ app.whenReady().then(() => {
 	});
 
 	// Set app user model id for windows
-	electronApp.setAppUserModelId("com.electron");
+	electronApp.setAppUserModelId(appConfig.appUserModelId);
 
 	// Default open or close DevTools by F12 in development
 	// and ignore CommandOrControl + R in production.

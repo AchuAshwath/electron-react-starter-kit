@@ -149,4 +149,11 @@ describe("configureAppLogging", () => {
 		expect(electronLogMock.default.transports.console.level).toBe("warn");
 		expect(electronLogMock.default.transports.console.useStyles).toBe(false);
 	});
+
+	it("allows config to override the console log level", () => {
+		configureAppLogging({ consoleLevel: "error", isDev: true });
+
+		expect(electronLogMock.default.transports.console.level).toBe("error");
+		expect(electronLogMock.default.transports.console.useStyles).toBe(true);
+	});
 });

@@ -1,6 +1,9 @@
 import log from "electron-log/main";
 
+type AppConsoleLogLevel = "debug" | "info" | "warn" | "error";
+
 type ConfigureAppLoggingOptions = {
+	consoleLevel?: AppConsoleLogLevel;
 	isDev: boolean;
 };
 
@@ -34,6 +37,7 @@ export const settingsLogger = createLogger("settings");
 export const windowLogger = createLogger("window");
 
 export function configureAppLogging({
+	consoleLevel,
 	isDev,
 }: ConfigureAppLoggingOptions): void {
 	log.initialize({
@@ -41,7 +45,7 @@ export function configureAppLogging({
 		spyRendererConsole: false,
 	});
 
-	log.transports.console.level = isDev ? "debug" : "warn";
+	log.transports.console.level = consoleLevel ?? (isDev ? "debug" : "warn");
 	log.transports.console.format = consoleLogFormat;
 	log.transports.console.colorMap = consoleLevelColors;
 	log.transports.console.useStyles = isDev;

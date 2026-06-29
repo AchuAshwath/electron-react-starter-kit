@@ -13,7 +13,7 @@ flowchart LR
 	Foundation --> Security["Security + IPC + settings + tests"]
 	Foundation --> Auth["Auth contract + secure storage"]
 	Foundation --> Reliability["Route fallbacks + diagnostics"]
-	Foundation --> FutureCore["typed config + reliability polish"]
+	Foundation --> FutureCore["reliability polish"]
 	Recipes --> Providers["Provider recipes"]
 	Recipes --> Files["Imported file persistence"]
 	Recipes --> Updates["Auto-update"]
@@ -39,19 +39,11 @@ flowchart LR
 - Documentation split between core guides and optional recipes.
 - Provider-neutral auth session contract with `DevAuthProvider`, typed IPC, renderer hooks, secure credential metadata, session restore/refresh, Settings profile/logout, and guarded app routes.
 - Main-process secure storage module backed by Electron `safeStorage` and encrypted `electron-store` blobs.
+- Typed config boundaries for main runtime env, renderer public env, settings, and secure storage.
 
 ## Core Starter Roadmap
 
 These belong in the starter because most production Electron apps need the pattern.
-
-### Typed config
-
-Add documented config boundaries for:
-
-- renderer build-time environment values
-- main-process runtime configuration
-- secrets that must not ship in renderer bundles
-- `.env.example` and validation strategy
 
 ### Reliability polish
 

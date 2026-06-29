@@ -6,3 +6,8 @@ coverage
 .eslintcache
 *.log*
 .tanstack/
+
+# Local environment files
+.env
+.env.*
+!.env.example
