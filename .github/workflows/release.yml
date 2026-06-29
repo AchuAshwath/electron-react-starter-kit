@@ -88,24 +88,23 @@ jobs:
         include:
           - name: Windows
             os: windows-latest
-            command: pnpm build:win
+            command: pnpm build && pnpm exec electron-builder --win nsis --publish never
             artifact_name: windows
             artifact_path: |
               dist/*.exe
           - name: macOS
-            os: macos-latest
-            command: pnpm build:mac
+            os: macos-14
+            command: pnpm build && pnpm exec electron-builder --mac dmg --publish never
             artifact_name: macos
             artifact_path: |
               dist/*.dmg
           - name: Linux
             os: ubuntu-latest
-            command: pnpm build:linux
+            command: pnpm build && pnpm exec electron-builder --linux AppImage deb --publish never
             artifact_name: linux
             artifact_path: |
               dist/*.AppImage
               dist/*.deb
-              dist/*.snap
 
     steps:
       - name: Checkout

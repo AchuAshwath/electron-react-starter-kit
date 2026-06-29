@@ -37,7 +37,7 @@ The current `electron-builder.yml` is configured for these targets:
 ```text
 Windows  -> NSIS setup .exe
 macOS    -> DMG .dmg
-Linux    -> AppImage, Snap, Debian .deb
+Linux    -> AppImage, Debian .deb
 ```
 
 Expected names follow `electron-builder.yml` templates and package metadata. Examples:
@@ -47,7 +47,6 @@ dist/electron-react-starter-kit-1.0.0-setup.exe
 dist/electron-react-starter-kit-1.0.0.dmg
 dist/electron-react-starter-kit-1.0.0.AppImage
 dist/electron-react-starter-kit_1.0.0_amd64.deb
-dist/electron-react-starter-kit_1.0.0_amd64.snap
 ```
 
 Treat names as examples. Exact file names depend on package version, platform, architecture, target, and `electron-builder.yml` artifact templates.
@@ -72,7 +71,7 @@ electron-builder can build multiple targets, but platform signing and native dep
 
 - macOS signing and notarization require macOS and Apple credentials.
 - Windows signing requires a Windows code signing certificate or compatible signing setup.
-- Linux packages may require Linux tooling or containerized builders.
+- Linux packages may require Linux tooling or containerized builders. Snap packaging additionally requires Snapcraft and is left as an opt-in target.
 - Native dependencies may need target-platform rebuilds.
 
 For a serious release, build and smoke-test each platform on that platform or on a purpose-built CI runner.

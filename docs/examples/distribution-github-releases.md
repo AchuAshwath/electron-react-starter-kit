@@ -45,7 +45,7 @@ The current starter targets produce release candidates similar to:
 ```text
 Windows: dist/*-setup.exe
 macOS:   dist/*.dmg
-Linux:   dist/*.AppImage, dist/*.deb, dist/*.snap
+Linux:   dist/*.AppImage, dist/*.deb
 ```
 
 Exact names depend on version, platform, architecture, and `electron-builder.yml` artifact templates.
@@ -56,10 +56,10 @@ The starter includes [`.github/workflows/release.yml`](../../.github/workflows/r
 
 What the workflow does:
 
-1. Builds Windows artifacts on `windows-latest` with `pnpm build:win`.
-2. Builds macOS artifacts on `macos-latest` with `pnpm build:mac`.
-3. Builds Linux artifacts on `ubuntu-latest` with `pnpm build:linux`.
-4. Verifies the tag version matches `package.json`.
+1. Verifies the tag version matches `package.json`.
+2. Builds Windows NSIS artifacts on `windows-latest`.
+3. Builds macOS DMG artifacts on `macos-14`.
+4. Builds Linux AppImage and Debian artifacts on `ubuntu-latest`.
 5. Uploads build outputs as short-lived workflow artifacts.
 6. Creates a draft GitHub Release when one does not already exist for the tag.
 7. Uploads the packaged installers/packages with `gh release upload --clobber`.
@@ -101,7 +101,7 @@ Upload artifacts after builds finish:
 ```powershell
 gh release upload v1.0.0 "dist/*-setup.exe" --clobber
 gh release upload v1.0.0 "dist/*.dmg" --clobber
-gh release upload v1.0.0 "dist/*.AppImage" "dist/*.deb" "dist/*.snap" --clobber
+gh release upload v1.0.0 "dist/*.AppImage" "dist/*.deb" --clobber
 ```
 
 The GitHub CLI also supports creating a release and uploading assets in one command:
@@ -118,7 +118,7 @@ Attach installer/package artifacts that users should download:
 
 - Windows NSIS setup `.exe`
 - macOS `.dmg`
-- Linux `.AppImage`, `.deb`, and `.snap` when those targets are supported
+- Linux `.AppImage` and `.deb` artifacts
 
 Do not attach intermediate build folders, source maps, local logs, `.env` files, signing credentials, or caches.
 

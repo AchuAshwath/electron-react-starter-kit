@@ -85,7 +85,7 @@ Discover the core stack driving this starter template:
 - Scoped main-process logging and sanitized Electron event logging.
 - Vitest, Testing Library, jsdom, coverage, Biome, Husky, and commitlint.
 - electron-builder scripts for Windows, macOS, and Linux packages.
-- Packaging guidance for Windows `.exe`, macOS `.dmg`, and Linux AppImage, Debian, and Snap artifacts.
+- Packaging guidance for Windows `.exe`, macOS `.dmg`, and Linux AppImage/Debian artifacts.
 - GitHub Actions release workflow for building packages and uploading draft GitHub Release assets.
 
 ## Quick Start
