@@ -4,6 +4,7 @@ import {
 	type AuthorizationUrlRequest,
 	CryptoProvider,
 	PublicClientApplication,
+	type TokenCache,
 } from "@azure/msal-node";
 import { shell } from "electron";
 import { z } from "zod";
@@ -17,12 +18,19 @@ import {
 	type AuthCredentialStore,
 	authCredentialStore,
 } from "./auth-credential.store";
+import {
+	type MicrosoftTokenCacheStore,
+	microsoftTokenCacheStore,
+} from "./microsoft-token-cache.store";
 
 export const microsoftAuthProviderId = "microsoft";
 
 type MicrosoftAuthClient = Pick<
 	PublicClientApplication,
-	"acquireTokenByCode" | "getAuthCodeUrl"
+	| "acquireTokenByCode"
+	| "acquireTokenSilent"
+	| "getAuthCodeUrl"
+	| "getTokenCache"
 >;
 
 type PkceCodes = {
@@ -39,6 +47,10 @@ type MicrosoftAuthProviderOptions = {
 	credentialStore?: Pick<
 		AuthCredentialStore,
 		"deleteCredential" | "getCredential" | "setCredential"
+	>;
+	tokenCacheStore?: Pick<
+		MicrosoftTokenCacheStore,
+		"deleteTokenCache" | "hydrateTokenCache" | "persistTokenCache"
 	>;
 	msalClient?: MicrosoftAuthClient;
 	createPkceCodes?: () => Promise<PkceCodes>;
@@ -70,6 +82,10 @@ export class MicrosoftAuthProvider implements AuthProvider {
 		AuthCredentialStore,
 		"deleteCredential" | "getCredential" | "setCredential"
 	>;
+	private readonly tokenCacheStore: Pick<
+		MicrosoftTokenCacheStore,
+		"deleteTokenCache" | "hydrateTokenCache" | "persistTokenCache"
+	>;
 	private readonly msalClient: MicrosoftAuthClient;
 	private readonly createPkceCodes: () => Promise<PkceCodes>;
 	private readonly createState: () => string;
@@ -83,6 +99,7 @@ export class MicrosoftAuthProvider implements AuthProvider {
 	constructor({
 		config,
 		credentialStore = authCredentialStore,
+		tokenCacheStore = microsoftTokenCacheStore,
 		msalClient,
 		createPkceCodes,
 		createState,
@@ -92,6 +109,7 @@ export class MicrosoftAuthProvider implements AuthProvider {
 	}: MicrosoftAuthProviderOptions) {
 		this.config = config;
 		this.credentialStore = credentialStore;
+		this.tokenCacheStore = tokenCacheStore;
 		this.msalClient =
 			msalClient ??
 			new PublicClientApplication({
@@ -122,7 +140,7 @@ export class MicrosoftAuthProvider implements AuthProvider {
 	}
 
 	async getSession(): Promise<AuthSession | null> {
-		if (this.session) {
+		if (this.session && !this.isSessionExpired(this.session)) {
 			return this.session;
 		}
 
@@ -150,21 +168,29 @@ export class MicrosoftAuthProvider implements AuthProvider {
 		);
 		const session = this.createSessionFromTokenResult(tokenResult);
 
-		await this.credentialStore.setCredential(
-			microsoftAuthProviderId,
-			JSON.stringify(this.createCredentialFromSession(session)),
-		);
+		try {
+			this.tokenCacheStore.persistTokenCache(this.getTokenCache());
+			await this.credentialStore.setCredential(
+				microsoftAuthProviderId,
+				JSON.stringify(this.createCredentialFromSession(session)),
+			);
+		} catch (error) {
+			this.tokenCacheStore.deleteTokenCache();
+			await this.credentialStore.deleteCredential(microsoftAuthProviderId);
+			throw error;
+		}
 
 		this.session = session;
 		return session;
 	}
 
 	async refreshSession(): Promise<AuthSession | null> {
-		return this.getSession();
+		return this.restoreSession();
 	}
 
 	async signOut(): Promise<void> {
 		this.session = null;
+		this.tokenCacheStore.deleteTokenCache();
 		await this.credentialStore.deleteCredential(microsoftAuthProviderId);
 	}
 
@@ -242,6 +268,14 @@ export class MicrosoftAuthProvider implements AuthProvider {
 		};
 	}
 
+	private isSessionExpired(session: AuthSession): boolean {
+		if (!session.expiresAt) {
+			return false;
+		}
+
+		return new Date(session.expiresAt).getTime() <= this.now().getTime();
+	}
+
 	private async restoreSession(): Promise<AuthSession | null> {
 		const storedCredential = await this.credentialStore.getCredential(
 			microsoftAuthProviderId,
@@ -257,15 +291,46 @@ export class MicrosoftAuthProvider implements AuthProvider {
 			);
 
 			if (credential.tenantId !== this.config.tenantId) {
-				await this.credentialStore.deleteCredential(microsoftAuthProviderId);
+				await this.clearStoredAuthState();
 				return null;
 			}
 
-			await this.credentialStore.deleteCredential(microsoftAuthProviderId);
-			return null;
+			const tokenCache = this.getTokenCache();
+			const hasTokenCache = this.tokenCacheStore.hydrateTokenCache(tokenCache);
+			if (!hasTokenCache) {
+				await this.clearStoredAuthState();
+				return null;
+			}
+
+			const account = await tokenCache.getAccountByHomeId(
+				credential.homeAccountId,
+			);
+			if (!account) {
+				await this.clearStoredAuthState();
+				return null;
+			}
+
+			const tokenResult = await this.msalClient.acquireTokenSilent({
+				account,
+				scopes: this.config.scopes,
+			});
+			const session = this.createSessionFromTokenResult(tokenResult);
+
+			this.tokenCacheStore.persistTokenCache(tokenCache);
+			this.session = session;
+			return session;
 		} catch {
-			await this.credentialStore.deleteCredential(microsoftAuthProviderId);
+			await this.clearStoredAuthState();
 			return null;
 		}
+	}
+
+	private getTokenCache(): TokenCache {
+		return this.msalClient.getTokenCache();
+	}
+
+	private async clearStoredAuthState(): Promise<void> {
+		this.tokenCacheStore.deleteTokenCache();
+		await this.credentialStore.deleteCredential(microsoftAuthProviderId);
 	}
 }

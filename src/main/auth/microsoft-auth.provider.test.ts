@@ -1,4 +1,8 @@
-import type { AuthenticationResult } from "@azure/msal-node";
+import type {
+	AccountInfo,
+	AuthenticationResult,
+	TokenCache,
+} from "@azure/msal-node";
 import { describe, expect, it, vi } from "vitest";
 import type { MicrosoftAuthConfig } from "../config/app-config";
 import type { AuthSignInRequest } from "./auth.types";
@@ -36,19 +40,36 @@ function createCredentialStore(initialCredential: string | null = null) {
 	return store;
 }
 
+function createTokenCacheStore({
+	hydrates = true,
+}: {
+	hydrates?: boolean;
+} = {}) {
+	return {
+		deleteTokenCache: vi.fn(),
+		hydrateTokenCache: vi.fn(() => hydrates),
+		persistTokenCache: vi.fn(),
+	};
+}
+
+function createAccount(overrides: Partial<AccountInfo> = {}): AccountInfo {
+	return {
+		environment: "login.windows.net",
+		homeAccountId: "home-account-id",
+		localAccountId: "local-account-id",
+		name: "Ashwath N",
+		tenantId: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+		username: "ashwath.n@example.com",
+		...overrides,
+	};
+}
+
 function createTokenResult(
 	overrides: Partial<AuthenticationResult> = {},
 ): AuthenticationResult {
 	return {
 		accessToken: "access-token",
-		account: {
-			environment: "login.windows.net",
-			homeAccountId: "home-account-id",
-			localAccountId: "local-account-id",
-			name: "Ashwath N",
-			tenantId: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
-			username: "ashwath.n@example.com",
-		},
+		account: createAccount(),
 		authority: "https://login.microsoftonline.com/tenant",
 		cloudGraphHostName: "",
 		correlationId: "correlation-id",
@@ -67,6 +88,50 @@ function createTokenResult(
 	};
 }
 
+function createTokenCache({
+	account = createAccount(),
+}: {
+	account?: AccountInfo | null;
+} = {}) {
+	return {
+		deserialize: vi.fn(),
+		getAccountByHomeId: vi.fn(async () => account),
+		serialize: vi.fn(() => "serialized-token-cache"),
+	} as unknown as TokenCache;
+}
+
+function createMsalClient({
+	authCodeUrl = "https://login.microsoftonline.com/auth",
+	tokenResult = createTokenResult(),
+	silentTokenResult = createTokenResult({ fromCache: true }),
+	tokenCache = createTokenCache(),
+}: {
+	authCodeUrl?: string;
+	tokenResult?: AuthenticationResult;
+	silentTokenResult?: AuthenticationResult;
+	tokenCache?: TokenCache;
+} = {}) {
+	return {
+		acquireTokenByCode: vi.fn(async () => tokenResult),
+		acquireTokenSilent: vi.fn(async () => silentTokenResult),
+		getAuthCodeUrl: vi.fn(async () => authCodeUrl),
+		getTokenCache: vi.fn(() => tokenCache),
+	};
+}
+
+function createStoredCredential(overrides: Record<string, unknown> = {}) {
+	return JSON.stringify({
+		provider: microsoftAuthProviderId,
+		homeAccountId: "home-account-id",
+		name: "Ashwath N",
+		tenantId: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+		username: "ashwath.n@example.com",
+		issuedAt: "2026-06-25T10:30:00.000Z",
+		expiresAt: "2026-06-25T11:30:00.000Z",
+		...overrides,
+	});
+}
+
 const microsoftSignInRequest: AuthSignInRequest = { strategy: "microsoft" };
 
 describe("MicrosoftAuthProvider", () => {
@@ -75,19 +140,17 @@ describe("MicrosoftAuthProvider", () => {
 		const provider = new MicrosoftAuthProvider({
 			config: createMicrosoftAuthConfig(),
 			credentialStore,
+			msalClient: createMsalClient(),
+			tokenCacheStore: createTokenCacheStore(),
 		});
 
 		await expect(provider.getSession()).resolves.toBeNull();
 	});
 
-	it("opens the Microsoft auth URL, exchanges the callback code, and creates a session", async () => {
+	it("opens the Microsoft auth URL, exchanges the callback code, persists cache, and creates a session", async () => {
 		const credentialStore = createCredentialStore();
-		const msalClient = {
-			getAuthCodeUrl: vi.fn(
-				async () => "https://login.microsoftonline.com/auth",
-			),
-			acquireTokenByCode: vi.fn(async () => createTokenResult()),
-		};
+		const tokenCacheStore = createTokenCacheStore();
+		const msalClient = createMsalClient();
 		const callOrder: string[] = [];
 		const openExternal = vi.fn(async () => {
 			callOrder.push("open-external");
@@ -99,6 +162,7 @@ describe("MicrosoftAuthProvider", () => {
 		const provider = new MicrosoftAuthProvider({
 			config: createMicrosoftAuthConfig(),
 			credentialStore,
+			tokenCacheStore,
 			msalClient,
 			createPkceCodes: async () => ({
 				challenge: "pkce-challenge",
@@ -139,6 +203,9 @@ describe("MicrosoftAuthProvider", () => {
 			scopes: ["openid", "profile", "email", "offline_access", "User.Read"],
 			state: "state",
 		});
+		expect(tokenCacheStore.persistTokenCache).toHaveBeenCalledWith(
+			msalClient.getTokenCache(),
+		);
 	});
 
 	it("stores provider credential metadata after sign-in", async () => {
@@ -146,12 +213,8 @@ describe("MicrosoftAuthProvider", () => {
 		const provider = new MicrosoftAuthProvider({
 			config: createMicrosoftAuthConfig(),
 			credentialStore,
-			msalClient: {
-				getAuthCodeUrl: vi.fn(
-					async () => "https://login.microsoftonline.com/auth",
-				),
-				acquireTokenByCode: vi.fn(async () => createTokenResult()),
-			},
+			tokenCacheStore: createTokenCacheStore(),
+			msalClient: createMsalClient(),
 			createPkceCodes: async () => ({
 				challenge: "pkce-challenge",
 				verifier: "pkce-verifier",
@@ -178,16 +241,17 @@ describe("MicrosoftAuthProvider", () => {
 		);
 	});
 
-	it("returns the same in-memory session after sign-in", async () => {
+	it("clears partial auth state when sign-in cannot persist the token cache", async () => {
+		const credentialStore = createCredentialStore();
+		const tokenCacheStore = createTokenCacheStore();
+		tokenCacheStore.persistTokenCache.mockImplementation(() => {
+			throw new Error("secure storage failed");
+		});
 		const provider = new MicrosoftAuthProvider({
 			config: createMicrosoftAuthConfig(),
-			credentialStore: createCredentialStore(),
-			msalClient: {
-				getAuthCodeUrl: vi.fn(
-					async () => "https://login.microsoftonline.com/auth",
-				),
-				acquireTokenByCode: vi.fn(async () => createTokenResult()),
-			},
+			credentialStore,
+			tokenCacheStore,
+			msalClient: createMsalClient(),
 			createPkceCodes: async () => ({
 				challenge: "pkce-challenge",
 				verifier: "pkce-verifier",
@@ -196,29 +260,190 @@ describe("MicrosoftAuthProvider", () => {
 			openExternal: vi.fn(async () => undefined),
 			waitForAuthorizationCode: vi.fn(async () => "authorization-code"),
 		});
+
+		await expect(provider.signIn(microsoftSignInRequest)).rejects.toThrow(
+			"secure storage failed",
+		);
+		expect(tokenCacheStore.deleteTokenCache).toHaveBeenCalled();
+		expect(credentialStore.deleteCredential).toHaveBeenCalledWith(
+			microsoftAuthProviderId,
+		);
+	});
+
+	it("returns the same in-memory session after sign-in", async () => {
+		const provider = new MicrosoftAuthProvider({
+			config: createMicrosoftAuthConfig(),
+			credentialStore: createCredentialStore(),
+			tokenCacheStore: createTokenCacheStore(),
+			msalClient: createMsalClient(),
+			createPkceCodes: async () => ({
+				challenge: "pkce-challenge",
+				verifier: "pkce-verifier",
+			}),
+			createState: () => "state",
+			now: () => new Date("2026-06-25T10:30:00.000Z"),
+			openExternal: vi.fn(async () => undefined),
+			waitForAuthorizationCode: vi.fn(async () => "authorization-code"),
+		});
 		const session = await provider.signIn(microsoftSignInRequest);
 
 		await expect(provider.getSession()).resolves.toBe(session);
 	});
 
-	it("does not restore stored metadata as a session without token validation", async () => {
-		const credentialStore = createCredentialStore(
-			JSON.stringify({
-				provider: microsoftAuthProviderId,
-				homeAccountId: "home-account-id",
-				name: "Ashwath N",
-				tenantId: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
-				username: "ashwath.n@example.com",
-				issuedAt: "2026-06-25T10:30:00.000Z",
-				expiresAt: "2026-06-25T11:30:00.000Z",
+	it("revalidates an expired in-memory session through the token cache", async () => {
+		const credentialStore = createCredentialStore();
+		const tokenCacheStore = createTokenCacheStore();
+		const msalClient = createMsalClient({
+			silentTokenResult: createTokenResult({
+				fromCache: true,
+				expiresOn: new Date("2026-06-25T12:30:00.000Z"),
 			}),
+		});
+		let now = new Date("2026-06-25T10:30:00.000Z");
+		const provider = new MicrosoftAuthProvider({
+			config: createMicrosoftAuthConfig(),
+			credentialStore,
+			tokenCacheStore,
+			msalClient,
+			createPkceCodes: async () => ({
+				challenge: "pkce-challenge",
+				verifier: "pkce-verifier",
+			}),
+			createState: () => "state",
+			now: () => now,
+			openExternal: vi.fn(async () => undefined),
+			waitForAuthorizationCode: vi.fn(async () => "authorization-code"),
+		});
+
+		await provider.signIn(microsoftSignInRequest);
+		now = new Date("2026-06-25T11:31:00.000Z");
+
+		await expect(provider.getSession()).resolves.toEqual({
+			user: {
+				id: "home-account-id",
+				name: "Ashwath N",
+				username: "ashwath.n@example.com",
+				provider: microsoftAuthProviderId,
+			},
+			issuedAt: "2026-06-25T11:31:00.000Z",
+			expiresAt: "2026-06-25T12:30:00.000Z",
+		});
+		expect(msalClient.acquireTokenSilent).toHaveBeenCalled();
+	});
+
+	it("revalidates an expired in-memory session through the token cache", async () => {
+		const credentialStore = createCredentialStore();
+		const tokenCacheStore = createTokenCacheStore();
+		const msalClient = createMsalClient({
+			silentTokenResult: createTokenResult({
+				fromCache: true,
+				expiresOn: new Date("2026-06-25T12:30:00.000Z"),
+			}),
+		});
+		let now = new Date("2026-06-25T10:30:00.000Z");
+		const provider = new MicrosoftAuthProvider({
+			config: createMicrosoftAuthConfig(),
+			credentialStore,
+			tokenCacheStore,
+			msalClient,
+			createPkceCodes: async () => ({
+				challenge: "pkce-challenge",
+				verifier: "pkce-verifier",
+			}),
+			createState: () => "state",
+			now: () => now,
+			openExternal: vi.fn(async () => undefined),
+			waitForAuthorizationCode: vi.fn(async () => "authorization-code"),
+		});
+
+		await provider.signIn(microsoftSignInRequest);
+		now = new Date("2026-06-25T11:31:00.000Z");
+
+		await expect(provider.getSession()).resolves.toEqual({
+			user: {
+				id: "home-account-id",
+				name: "Ashwath N",
+				username: "ashwath.n@example.com",
+				provider: microsoftAuthProviderId,
+			},
+			issuedAt: "2026-06-25T11:31:00.000Z",
+			expiresAt: "2026-06-25T12:30:00.000Z",
+		});
+		expect(msalClient.acquireTokenSilent).toHaveBeenCalled();
+	});
+
+	it("restores a session by hydrating the token cache and acquiring a token silently", async () => {
+		const credentialStore = createCredentialStore(createStoredCredential());
+		const tokenCacheStore = createTokenCacheStore();
+		const msalClient = createMsalClient({
+			silentTokenResult: createTokenResult({
+				fromCache: true,
+				expiresOn: new Date("2026-06-25T12:30:00.000Z"),
+			}),
+		});
+		const provider = new MicrosoftAuthProvider({
+			config: createMicrosoftAuthConfig(),
+			credentialStore,
+			tokenCacheStore,
+			msalClient,
+			now: () => new Date("2026-06-25T12:00:00.000Z"),
+		});
+
+		await expect(provider.getSession()).resolves.toEqual({
+			user: {
+				id: "home-account-id",
+				name: "Ashwath N",
+				username: "ashwath.n@example.com",
+				provider: microsoftAuthProviderId,
+			},
+			issuedAt: "2026-06-25T12:00:00.000Z",
+			expiresAt: "2026-06-25T12:30:00.000Z",
+		});
+		expect(tokenCacheStore.hydrateTokenCache).toHaveBeenCalledWith(
+			msalClient.getTokenCache(),
+		);
+		expect(msalClient.acquireTokenSilent).toHaveBeenCalledWith({
+			account: createAccount(),
+			scopes: ["openid", "profile", "email", "offline_access", "User.Read"],
+		});
+		expect(tokenCacheStore.persistTokenCache).toHaveBeenCalledWith(
+			msalClient.getTokenCache(),
+		);
+	});
+
+	it("clears stored auth state when no token cache is available", async () => {
+		const credentialStore = createCredentialStore(createStoredCredential());
+		const tokenCacheStore = createTokenCacheStore({ hydrates: false });
+		const provider = new MicrosoftAuthProvider({
+			config: createMicrosoftAuthConfig(),
+			credentialStore,
+			tokenCacheStore,
+			msalClient: createMsalClient(),
+		});
+
+		await expect(provider.getSession()).resolves.toBeNull();
+		expect(tokenCacheStore.deleteTokenCache).toHaveBeenCalled();
+		expect(credentialStore.deleteCredential).toHaveBeenCalledWith(
+			microsoftAuthProviderId,
+		);
+	});
+
+	it("clears stored auth state when silent token acquisition fails", async () => {
+		const credentialStore = createCredentialStore(createStoredCredential());
+		const tokenCacheStore = createTokenCacheStore();
+		const msalClient = createMsalClient();
+		msalClient.acquireTokenSilent.mockRejectedValue(
+			new Error("interaction required"),
 		);
 		const provider = new MicrosoftAuthProvider({
 			config: createMicrosoftAuthConfig(),
 			credentialStore,
+			tokenCacheStore,
+			msalClient,
 		});
 
 		await expect(provider.getSession()).resolves.toBeNull();
+		expect(tokenCacheStore.deleteTokenCache).toHaveBeenCalled();
 		expect(credentialStore.deleteCredential).toHaveBeenCalledWith(
 			microsoftAuthProviderId,
 		);
@@ -226,21 +451,18 @@ describe("MicrosoftAuthProvider", () => {
 
 	it("clears stored credential metadata when tenant does not match config", async () => {
 		const credentialStore = createCredentialStore(
-			JSON.stringify({
-				provider: microsoftAuthProviderId,
-				homeAccountId: "home-account-id",
-				name: "Ashwath N",
-				tenantId: "different-tenant",
-				username: "ashwath.n@example.com",
-				issuedAt: "2026-06-25T10:30:00.000Z",
-			}),
+			createStoredCredential({ tenantId: "different-tenant" }),
 		);
+		const tokenCacheStore = createTokenCacheStore();
 		const provider = new MicrosoftAuthProvider({
 			config: createMicrosoftAuthConfig(),
 			credentialStore,
+			tokenCacheStore,
+			msalClient: createMsalClient(),
 		});
 
 		await expect(provider.getSession()).resolves.toBeNull();
+		expect(tokenCacheStore.deleteTokenCache).toHaveBeenCalled();
 		expect(credentialStore.deleteCredential).toHaveBeenCalledWith(
 			microsoftAuthProviderId,
 		);
@@ -248,50 +470,52 @@ describe("MicrosoftAuthProvider", () => {
 
 	it("clears corrupt stored credential metadata", async () => {
 		const credentialStore = createCredentialStore("not-json");
+		const tokenCacheStore = createTokenCacheStore();
 		const provider = new MicrosoftAuthProvider({
 			config: createMicrosoftAuthConfig(),
 			credentialStore,
+			tokenCacheStore,
+			msalClient: createMsalClient(),
 		});
 
 		await expect(provider.getSession()).resolves.toBeNull();
+		expect(tokenCacheStore.deleteTokenCache).toHaveBeenCalled();
 		expect(credentialStore.deleteCredential).toHaveBeenCalledWith(
 			microsoftAuthProviderId,
 		);
 	});
 
-	it("does not refresh from stored metadata without token validation", async () => {
-		const credentialStore = createCredentialStore(
-			JSON.stringify({
-				provider: microsoftAuthProviderId,
-				homeAccountId: "home-account-id",
-				name: "Ashwath N",
-				tenantId: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
-				username: "ashwath.n@example.com",
-				issuedAt: "2026-06-25T10:30:00.000Z",
-			}),
-		);
+	it("refreshes by forcing token-cache-backed session validation", async () => {
+		const credentialStore = createCredentialStore(createStoredCredential());
+		const tokenCacheStore = createTokenCacheStore();
 		const provider = new MicrosoftAuthProvider({
 			config: createMicrosoftAuthConfig(),
 			credentialStore,
+			tokenCacheStore,
+			msalClient: createMsalClient(),
+			now: () => new Date("2026-06-25T12:00:00.000Z"),
 		});
 
-		await expect(provider.refreshSession()).resolves.toBeNull();
-		expect(credentialStore.deleteCredential).toHaveBeenCalledWith(
-			microsoftAuthProviderId,
-		);
+		await expect(provider.refreshSession()).resolves.toEqual({
+			user: {
+				id: "home-account-id",
+				name: "Ashwath N",
+				username: "ashwath.n@example.com",
+				provider: microsoftAuthProviderId,
+			},
+			issuedAt: "2026-06-25T12:00:00.000Z",
+			expiresAt: "2026-06-25T11:30:00.000Z",
+		});
 	});
 
-	it("clears in-memory and stored credential state on sign-out", async () => {
+	it("clears in-memory, token cache, and stored credential state on sign-out", async () => {
 		const credentialStore = createCredentialStore();
+		const tokenCacheStore = createTokenCacheStore();
 		const provider = new MicrosoftAuthProvider({
 			config: createMicrosoftAuthConfig(),
 			credentialStore,
-			msalClient: {
-				getAuthCodeUrl: vi.fn(
-					async () => "https://login.microsoftonline.com/auth",
-				),
-				acquireTokenByCode: vi.fn(async () => createTokenResult()),
-			},
+			tokenCacheStore,
+			msalClient: createMsalClient(),
 			createPkceCodes: async () => ({
 				challenge: "pkce-challenge",
 				verifier: "pkce-verifier",
@@ -305,6 +529,7 @@ describe("MicrosoftAuthProvider", () => {
 		await provider.signOut();
 
 		await expect(provider.getSession()).resolves.toBeNull();
+		expect(tokenCacheStore.deleteTokenCache).toHaveBeenCalled();
 		expect(credentialStore.deleteCredential).toHaveBeenCalledWith(
 			microsoftAuthProviderId,
 		);
@@ -314,6 +539,8 @@ describe("MicrosoftAuthProvider", () => {
 		const provider = new MicrosoftAuthProvider({
 			config: createMicrosoftAuthConfig(),
 			credentialStore: createCredentialStore(),
+			tokenCacheStore: createTokenCacheStore(),
+			msalClient: createMsalClient(),
 		});
 
 		await expect(provider.signIn({ strategy: "device" })).rejects.toThrow(
@@ -325,14 +552,10 @@ describe("MicrosoftAuthProvider", () => {
 		const provider = new MicrosoftAuthProvider({
 			config: createMicrosoftAuthConfig(),
 			credentialStore: createCredentialStore(),
-			msalClient: {
-				getAuthCodeUrl: vi.fn(
-					async () => "https://login.microsoftonline.com/auth",
-				),
-				acquireTokenByCode: vi.fn(async () =>
-					createTokenResult({ account: null }),
-				),
-			},
+			tokenCacheStore: createTokenCacheStore(),
+			msalClient: createMsalClient({
+				tokenResult: createTokenResult({ account: null }),
+			}),
 			createPkceCodes: async () => ({
 				challenge: "pkce-challenge",
 				verifier: "pkce-verifier",
