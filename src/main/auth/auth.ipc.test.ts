@@ -100,6 +100,9 @@ describe("registerAuthIpcHandlers", () => {
 		const signInHandler = handlers.get(authIpcChannels.signIn);
 
 		expect(signInHandler?.input?.safeParse(signInRequest).success).toBe(true);
+		expect(
+			signInHandler?.input?.safeParse({ strategy: "microsoft" }).success,
+		).toBe(true);
 		expect(signInHandler?.input?.safeParse({ strategy: "oauth" }).success).toBe(
 			false,
 		);

@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { AuthSignInRequest } from "../../../../main/auth/auth.types";
 import { authQueries } from "./auth.queries";
 
 const deviceSignInRequest = { strategy: "device" } as const;
@@ -7,12 +8,12 @@ export function useAuthSession() {
 	return useQuery(authQueries.session());
 }
 
-export function useSignIn() {
+export function useSignIn(request: AuthSignInRequest = deviceSignInRequest) {
 	const queryClient = useQueryClient();
 	const queryKey = authQueries.session().queryKey;
 
 	return useMutation({
-		mutationFn: () => window.api.auth.signIn(deviceSignInRequest),
+		mutationFn: () => window.api.auth.signIn(request),
 		onSuccess: (session) => {
 			queryClient.setQueryData(queryKey, session);
 		},

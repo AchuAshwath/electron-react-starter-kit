@@ -14,7 +14,7 @@ export type AuthSession = {
 };
 
 export const authSignInRequestSchema = z.object({
-	strategy: z.literal("device"),
+	strategy: z.enum(["device", "microsoft"]),
 });
 
 export type AuthSignInRequest = z.infer<typeof authSignInRequestSchema>;

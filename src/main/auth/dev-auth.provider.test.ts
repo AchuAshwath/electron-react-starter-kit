@@ -200,16 +200,16 @@ describe("DevAuthProvider", () => {
 		);
 	});
 
-	it("rejects unsupported sign-in strategies", async () => {
+	it("rejects Microsoft sign-in because the dev provider only supports device auth", async () => {
 		const credentialStore = createCredentialStore();
 		const provider = new DevAuthProvider({
 			credentialStore,
 			getCurrentUser: () => ({ username: "ashwath.n" }),
 		});
 
-		await expect(
-			provider.signIn({ strategy: "oauth" } as unknown as AuthSignInRequest),
-		).rejects.toThrow("Unsupported auth strategy.");
+		await expect(provider.signIn({ strategy: "microsoft" })).rejects.toThrow(
+			"Unsupported auth strategy.",
+		);
 	});
 
 	it("fails when the OS username is missing", async () => {

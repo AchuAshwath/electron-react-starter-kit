@@ -61,6 +61,27 @@ describe("auth hooks", () => {
 		expect(apiMock.auth.signIn).toHaveBeenCalledWith({ strategy: "device" });
 	});
 
+	it("passes Microsoft sign-in requests through preload", async () => {
+		const queryClient = new QueryClient({
+			defaultOptions: { queries: { retry: false } },
+		});
+		apiMock.auth.signIn.mockResolvedValue({
+			...session,
+			user: { ...session.user, provider: "microsoft" },
+		});
+		const { result } = renderHook(() => useSignIn({ strategy: "microsoft" }), {
+			wrapper: createWrapper(queryClient),
+		});
+
+		result.current.mutate();
+
+		await waitFor(() => {
+			expect(apiMock.auth.signIn).toHaveBeenCalledWith({
+				strategy: "microsoft",
+			});
+		});
+	});
+
 	it("writes the refreshed session to the query cache", async () => {
 		const queryClient = new QueryClient({
 			defaultOptions: { queries: { retry: false } },
