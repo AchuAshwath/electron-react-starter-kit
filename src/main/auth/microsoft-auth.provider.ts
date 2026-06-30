@@ -330,6 +330,7 @@ export class MicrosoftAuthProvider implements AuthProvider {
 	}
 
 	private async clearStoredAuthState(): Promise<void> {
+		this.session = null;
 		this.tokenCacheStore.deleteTokenCache();
 		await this.credentialStore.deleteCredential(microsoftAuthProviderId);
 	}
