@@ -201,7 +201,7 @@ describe("MicrosoftAuthProvider", () => {
 		await expect(provider.getSession()).resolves.toBe(session);
 	});
 
-	it("restores a session from stored credential metadata", async () => {
+	it("does not restore stored metadata as a session without token validation", async () => {
 		const credentialStore = createCredentialStore(
 			JSON.stringify({
 				provider: microsoftAuthProviderId,
@@ -218,16 +218,10 @@ describe("MicrosoftAuthProvider", () => {
 			credentialStore,
 		});
 
-		await expect(provider.getSession()).resolves.toEqual({
-			user: {
-				id: "home-account-id",
-				name: "Ashwath N",
-				username: "ashwath.n@example.com",
-				provider: microsoftAuthProviderId,
-			},
-			issuedAt: "2026-06-25T10:30:00.000Z",
-			expiresAt: "2026-06-25T11:30:00.000Z",
-		});
+		await expect(provider.getSession()).resolves.toBeNull();
+		expect(credentialStore.deleteCredential).toHaveBeenCalledWith(
+			microsoftAuthProviderId,
+		);
 	});
 
 	it("clears stored credential metadata when tenant does not match config", async () => {
@@ -265,7 +259,7 @@ describe("MicrosoftAuthProvider", () => {
 		);
 	});
 
-	it("refreshes a valid restored session", async () => {
+	it("does not refresh from stored metadata without token validation", async () => {
 		const credentialStore = createCredentialStore(
 			JSON.stringify({
 				provider: microsoftAuthProviderId,
@@ -281,15 +275,10 @@ describe("MicrosoftAuthProvider", () => {
 			credentialStore,
 		});
 
-		await expect(provider.refreshSession()).resolves.toEqual({
-			user: {
-				id: "home-account-id",
-				name: "Ashwath N",
-				username: "ashwath.n@example.com",
-				provider: microsoftAuthProviderId,
-			},
-			issuedAt: "2026-06-25T10:30:00.000Z",
-		});
+		await expect(provider.refreshSession()).resolves.toBeNull();
+		expect(credentialStore.deleteCredential).toHaveBeenCalledWith(
+			microsoftAuthProviderId,
+		);
 	});
 
 	it("clears in-memory and stored credential state on sign-out", async () => {

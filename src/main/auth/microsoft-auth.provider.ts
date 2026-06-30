@@ -261,27 +261,11 @@ export class MicrosoftAuthProvider implements AuthProvider {
 				return null;
 			}
 
-			const session = this.createSessionFromCredential(credential);
-			this.session = session;
-			return session;
+			await this.credentialStore.deleteCredential(microsoftAuthProviderId);
+			return null;
 		} catch {
 			await this.credentialStore.deleteCredential(microsoftAuthProviderId);
 			return null;
 		}
-	}
-
-	private createSessionFromCredential(
-		credential: MicrosoftCredential,
-	): AuthSession {
-		return {
-			user: {
-				id: credential.homeAccountId,
-				name: credential.name,
-				username: credential.username,
-				provider: microsoftAuthProviderId,
-			},
-			issuedAt: credential.issuedAt,
-			expiresAt: credential.expiresAt,
-		};
 	}
 }
