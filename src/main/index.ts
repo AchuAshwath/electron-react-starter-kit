@@ -4,6 +4,10 @@ import { app, BrowserWindow, ipcMain, screen } from "electron";
 import icon from "../../resources/icon.png?asset";
 import { registerAuthIpcHandlers } from "./auth/auth.ipc";
 import { DevAuthProvider } from "./auth/dev-auth.provider";
+import {
+	MicrosoftAuthCallbackCoordinator,
+	registerMicrosoftAuthProtocolHandlers,
+} from "./auth/microsoft-auth-callback";
 import { loadAppConfig } from "./config/app-config";
 import { registerDialogIpcHandlers } from "./dialog/dialog.ipc";
 import { createIpcHandlerRegistrar } from "./ipc/ipc-handler";
@@ -30,6 +34,19 @@ import {
 } from "./window/window-state";
 
 const appConfig = loadAppConfig(process.env);
+const microsoftAuthCallbackCoordinator = appConfig.microsoftAuth
+	? new MicrosoftAuthCallbackCoordinator({
+			redirectUri: appConfig.microsoftAuth.redirectUri,
+		})
+	: null;
+const hasSingleInstanceLock =
+	appConfig.microsoftAuth && microsoftAuthCallbackCoordinator
+		? registerMicrosoftAuthProtocolHandlers({
+				app,
+				config: appConfig.microsoftAuth,
+				coordinator: microsoftAuthCallbackCoordinator,
+			})
+		: true;
 
 configureAppLogging({ consoleLevel: appConfig.logLevel, isDev: is.dev });
 
@@ -101,67 +118,68 @@ function createWindow(): void {
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
-app.whenReady().then(() => {
-	appLogger.info("App ready", {
-		arch: process.arch,
-		platform: process.platform,
+if (hasSingleInstanceLock) {
+	app.whenReady().then(() => {
+		appLogger.info("App ready", {
+			arch: process.arch,
+			platform: process.platform,
+		});
+
+		// Set app user model id for windows
+		electronApp.setAppUserModelId(appConfig.appUserModelId);
+
+		// Default open or close DevTools by F12 in development
+		// and ignore CommandOrControl + R in production.
+		// see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
+		app.on("browser-window-created", (_, window) => {
+			optimizer.watchWindowShortcuts(window);
+		});
+
+		registerPermissionRequestHandler();
+		const registerIpcHandler = createIpcHandlerRegistrar({
+			ipcMain,
+			isDev: is.dev,
+			assertTrustedSender: assertTrustedIpcSender,
+		});
+
+		// IPC handlers — two-way request/response (used with ipcRenderer.invoke + TanStack Query)
+		registerIpcHandler({
+			channel: "get-app-version",
+			handler: () => {
+				return app.getVersion();
+			},
+		});
+
+		registerIpcHandler({
+			channel: "get-system-info",
+			handler: () => {
+				return {
+					platform: process.platform,
+					arch: process.arch,
+					nodeVersion: process.versions.node,
+					chromeVersion: process.versions.chrome,
+					electronVersion: process.versions.electron,
+				};
+			},
+		});
+
+		const authProvider = new DevAuthProvider();
+
+		registerAuthIpcHandlers(registerIpcHandler, { provider: authProvider });
+		registerSettingsIpcHandlers(registerIpcHandler);
+		registerThemeIpcHandlers(registerIpcHandler);
+		registerDialogIpcHandlers(registerIpcHandler);
+		registerNotificationIpcHandlers(registerIpcHandler);
+
+		createWindow();
+
+		app.on("activate", () => {
+			// On macOS it's common to re-create a window in the app when the
+			// dock icon is clicked and there are no other windows open.
+			if (BrowserWindow.getAllWindows().length === 0) createWindow();
+		});
 	});
-
-	// Set app user model id for windows
-	electronApp.setAppUserModelId(appConfig.appUserModelId);
-
-	// Default open or close DevTools by F12 in development
-	// and ignore CommandOrControl + R in production.
-	// see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
-	app.on("browser-window-created", (_, window) => {
-		optimizer.watchWindowShortcuts(window);
-	});
-
-	registerPermissionRequestHandler();
-	const registerIpcHandler = createIpcHandlerRegistrar({
-		ipcMain,
-		isDev: is.dev,
-		assertTrustedSender: assertTrustedIpcSender,
-	});
-
-	// IPC handlers — two-way request/response (used with ipcRenderer.invoke + TanStack Query)
-	registerIpcHandler({
-		channel: "get-app-version",
-		handler: () => {
-			return app.getVersion();
-		},
-	});
-
-	registerIpcHandler({
-		channel: "get-system-info",
-		handler: () => {
-			return {
-				platform: process.platform,
-				arch: process.arch,
-				nodeVersion: process.versions.node,
-				chromeVersion: process.versions.chrome,
-				electronVersion: process.versions.electron,
-			};
-		},
-	});
-
-	const authProvider = new DevAuthProvider();
-
-	registerAuthIpcHandlers(registerIpcHandler, { provider: authProvider });
-	registerSettingsIpcHandlers(registerIpcHandler);
-	registerThemeIpcHandlers(registerIpcHandler);
-	registerDialogIpcHandlers(registerIpcHandler);
-	registerNotificationIpcHandlers(registerIpcHandler);
-
-	createWindow();
-
-	app.on("activate", () => {
-		// On macOS it's common to re-create a window in the app when the
-		// dock icon is clicked and there are no other windows open.
-		if (BrowserWindow.getAllWindows().length === 0) createWindow();
-	});
-});
-
+}
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
