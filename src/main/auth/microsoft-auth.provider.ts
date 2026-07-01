@@ -39,6 +39,7 @@ type PkceCodes = {
 };
 
 type WaitForAuthorizationCodeRequest = {
+	signal?: AbortSignal;
 	state: string;
 };
 
@@ -158,9 +159,19 @@ export class MicrosoftAuthProvider implements AuthProvider {
 			this.createAuthorizationUrlRequest(state, pkceCodes.challenge),
 		);
 
-		const authorizationCode = this.waitForAuthorizationCode({ state });
+		const callbackAbortController = new AbortController();
+		const authorizationCode = this.waitForAuthorizationCode({
+			signal: callbackAbortController.signal,
+			state,
+		});
 
-		await this.openExternal(authUrl);
+		try {
+			await this.openExternal(authUrl);
+		} catch (error) {
+			callbackAbortController.abort();
+			await authorizationCode.catch(() => undefined);
+			throw error;
+		}
 
 		const code = await authorizationCode;
 		const tokenResult = await this.msalClient.acquireTokenByCode(

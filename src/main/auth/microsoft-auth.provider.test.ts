@@ -18,7 +18,7 @@ function createMicrosoftAuthConfig(): MicrosoftAuthConfig {
 	return {
 		authority: new URL(`https://login.microsoftonline.com/${tenantId}`),
 		clientId,
-		redirectUri: `msal${clientId}://auth`,
+		redirectUri: `http://localhost:38987/auth/callback`,
 		scopes: ["openid", "profile", "email", "offline_access", "User.Read"],
 		tenantId,
 	};
@@ -187,19 +187,22 @@ describe("MicrosoftAuthProvider", () => {
 		expect(msalClient.getAuthCodeUrl).toHaveBeenCalledWith({
 			codeChallenge: "pkce-challenge",
 			codeChallengeMethod: "S256",
-			redirectUri: "msal11111111-2222-4333-8444-555555555555://auth",
+			redirectUri: "http://localhost:38987/auth/callback",
 			scopes: ["openid", "profile", "email", "offline_access", "User.Read"],
 			state: "state",
 		});
 		expect(openExternal).toHaveBeenCalledWith(
 			"https://login.microsoftonline.com/auth",
 		);
-		expect(waitForAuthorizationCode).toHaveBeenCalledWith({ state: "state" });
+		expect(waitForAuthorizationCode).toHaveBeenCalledWith({
+			signal: expect.any(AbortSignal),
+			state: "state",
+		});
 		expect(callOrder).toEqual(["wait-for-code", "open-external"]);
 		expect(msalClient.acquireTokenByCode).toHaveBeenCalledWith({
 			code: "authorization-code",
 			codeVerifier: "pkce-verifier",
-			redirectUri: "msal11111111-2222-4333-8444-555555555555://auth",
+			redirectUri: "http://localhost:38987/auth/callback",
 			scopes: ["openid", "profile", "email", "offline_access", "User.Read"],
 			state: "state",
 		});
@@ -208,6 +211,42 @@ describe("MicrosoftAuthProvider", () => {
 		);
 	});
 
+	it("aborts the pending callback when the browser cannot be opened", async () => {
+		const msalClient = createMsalClient();
+		let abortSignal: AbortSignal | undefined;
+		const waitForAuthorizationCode = vi.fn(
+			({ signal }: { signal?: AbortSignal }) => {
+				abortSignal = signal;
+				return new Promise<string>((_resolve, reject) => {
+					signal?.addEventListener("abort", () => {
+						reject(new Error("callback aborted"));
+					});
+				});
+			},
+		);
+		const provider = new MicrosoftAuthProvider({
+			config: createMicrosoftAuthConfig(),
+			credentialStore: createCredentialStore(),
+			tokenCacheStore: createTokenCacheStore(),
+			msalClient,
+			createPkceCodes: async () => ({
+				challenge: "pkce-challenge",
+				verifier: "pkce-verifier",
+			}),
+			createState: () => "state",
+			openExternal: vi.fn(async () => {
+				throw new Error("browser launch failed");
+			}),
+			waitForAuthorizationCode,
+		});
+
+		await expect(provider.signIn(microsoftSignInRequest)).rejects.toThrow(
+			"browser launch failed",
+		);
+
+		expect(abortSignal?.aborted).toBe(true);
+		expect(msalClient.acquireTokenByCode).not.toHaveBeenCalled();
+	});
 	it("stores provider credential metadata after sign-in", async () => {
 		const credentialStore = createCredentialStore();
 		const provider = new MicrosoftAuthProvider({

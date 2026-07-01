@@ -1,14 +1,12 @@
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { electronApp, is, optimizer } from "@electron-toolkit/utils";
 import { app, BrowserWindow, ipcMain, screen } from "electron";
 import icon from "../../resources/icon.png?asset";
 import { registerAuthIpcHandlers } from "./auth/auth.ipc";
-import { DevAuthProvider } from "./auth/dev-auth.provider";
-import {
-	MicrosoftAuthCallbackCoordinator,
-	registerMicrosoftAuthProtocolHandlers,
-} from "./auth/microsoft-auth-callback";
-import { loadAppConfig } from "./config/app-config";
+import { MicrosoftAuthProvider } from "./auth/microsoft-auth.provider";
+import { MicrosoftAuthCallbackServer } from "./auth/microsoft-auth-callback";
+import { loadAppConfig, type MicrosoftAuthConfig } from "./config/app-config";
+import { loadEnvFile } from "./config/env-file";
 import { registerDialogIpcHandlers } from "./dialog/dialog.ipc";
 import { createIpcHandlerRegistrar } from "./ipc/ipc-handler";
 import { appLogger, configureAppLogging } from "./logging/logger";
@@ -33,22 +31,42 @@ import {
 	restoreWindowBounds,
 } from "./window/window-state";
 
+loadRuntimeEnvFiles();
 const appConfig = loadAppConfig(process.env);
-const microsoftAuthCallbackCoordinator = appConfig.microsoftAuth
-	? new MicrosoftAuthCallbackCoordinator({
-			redirectUri: appConfig.microsoftAuth.redirectUri,
-		})
-	: null;
-const hasSingleInstanceLock =
-	appConfig.microsoftAuth && microsoftAuthCallbackCoordinator
-		? registerMicrosoftAuthProtocolHandlers({
-				app,
-				config: appConfig.microsoftAuth,
-				coordinator: microsoftAuthCallbackCoordinator,
-			})
-		: true;
+const microsoftAuthConfig = requireMicrosoftAuthConfig(appConfig.microsoftAuth);
+const microsoftAuthCallbackServer = new MicrosoftAuthCallbackServer({
+	redirectUri: microsoftAuthConfig.redirectUri,
+});
+const hasSingleInstanceLock = app.requestSingleInstanceLock();
+if (!hasSingleInstanceLock) {
+	app.quit();
+}
 
 configureAppLogging({ consoleLevel: appConfig.logLevel, isDev: is.dev });
+
+function loadRuntimeEnvFiles(): void {
+	const envFilePaths = app.isPackaged
+		? [
+				join(process.resourcesPath, ".env"),
+				join(dirname(process.execPath), ".env"),
+			]
+		: [join(app.getAppPath(), ".env")];
+
+	for (const envFilePath of envFilePaths) {
+		loadEnvFile(envFilePath);
+	}
+}
+function requireMicrosoftAuthConfig(
+	config: MicrosoftAuthConfig | undefined,
+): MicrosoftAuthConfig {
+	if (!config) {
+		throw new Error(
+			"Microsoft auth config is required. Set MICROSOFT_AUTH_CLIENT_ID, MICROSOFT_AUTH_TENANT_ID, MICROSOFT_AUTH_AUTHORITY, MICROSOFT_AUTH_REDIRECT_URI, and MICROSOFT_AUTH_SCOPES.",
+		);
+	}
+
+	return config;
+}
 
 function createWindow(): void {
 	const settings = getSettings();
@@ -142,7 +160,7 @@ if (hasSingleInstanceLock) {
 			assertTrustedSender: assertTrustedIpcSender,
 		});
 
-		// IPC handlers — two-way request/response (used with ipcRenderer.invoke + TanStack Query)
+		// IPC handlers - two-way request/response (used with ipcRenderer.invoke + TanStack Query)
 		registerIpcHandler({
 			channel: "get-app-version",
 			handler: () => {
@@ -163,7 +181,11 @@ if (hasSingleInstanceLock) {
 			},
 		});
 
-		const authProvider = new DevAuthProvider();
+		const authProvider = new MicrosoftAuthProvider({
+			config: microsoftAuthConfig,
+			waitForAuthorizationCode: (request) =>
+				microsoftAuthCallbackServer.waitForAuthorizationCode(request),
+		});
 
 		registerAuthIpcHandlers(registerIpcHandler, { provider: authProvider });
 		registerSettingsIpcHandlers(registerIpcHandler);
