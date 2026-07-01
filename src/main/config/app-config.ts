@@ -104,12 +104,7 @@ function parseMicrosoftAuthConfig(
 		);
 	}
 
-	const expectedRedirectUri = `msal${clientId}://auth`;
-	if (redirectUri !== expectedRedirectUri) {
-		throw new Error(
-			"MICROSOFT_AUTH_REDIRECT_URI must use msal<client-id>://auth.",
-		);
-	}
+	validateMicrosoftLoopbackRedirectUri(redirectUri);
 
 	const scopes = scopeText.split(/\s+/).filter(Boolean);
 	if (scopes.length === 0) {
@@ -125,6 +120,35 @@ function parseMicrosoftAuthConfig(
 	};
 }
 
+function validateMicrosoftLoopbackRedirectUri(redirectUri: string): void {
+	let url: URL;
+	try {
+		url = new URL(redirectUri);
+	} catch {
+		throw new Error("MICROSOFT_AUTH_REDIRECT_URI must be a valid URL.");
+	}
+
+	const isLoopbackHost = ["localhost", "127.0.0.1", "[::1]"].includes(
+		url.hostname,
+	);
+	if (url.protocol !== "http:" || !isLoopbackHost) {
+		throw new Error(
+			"MICROSOFT_AUTH_REDIRECT_URI must use an HTTP localhost loopback URL.",
+		);
+	}
+
+	if (!url.port) {
+		throw new Error(
+			"MICROSOFT_AUTH_REDIRECT_URI must include a localhost port.",
+		);
+	}
+
+	if (!url.pathname || url.pathname === "/") {
+		throw new Error(
+			"MICROSOFT_AUTH_REDIRECT_URI must include a callback path.",
+		);
+	}
+}
 export function loadAppConfig(
 	env: Record<string, string | undefined>,
 ): AppConfig {

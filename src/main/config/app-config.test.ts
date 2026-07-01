@@ -8,7 +8,7 @@ function microsoftAuthEnv(overrides: Record<string, string | undefined> = {}) {
 	return {
 		MICROSOFT_AUTH_AUTHORITY: `https://login.microsoftonline.com/${microsoftTenantId}`,
 		MICROSOFT_AUTH_CLIENT_ID: microsoftClientId,
-		MICROSOFT_AUTH_REDIRECT_URI: `msal${microsoftClientId}://auth`,
+		MICROSOFT_AUTH_REDIRECT_URI: `http://localhost:38987/auth/callback`,
 		MICROSOFT_AUTH_SCOPES: "openid profile email offline_access User.Read",
 		MICROSOFT_AUTH_TENANT_ID: microsoftTenantId,
 		...overrides,
@@ -63,7 +63,7 @@ describe("loadAppConfig", () => {
 				`https://login.microsoftonline.com/${microsoftTenantId}`,
 			),
 			clientId: microsoftClientId,
-			redirectUri: `msal${microsoftClientId}://auth`,
+			redirectUri: `http://localhost:38987/auth/callback`,
 			scopes: ["openid", "profile", "email", "offline_access", "User.Read"],
 			tenantId: microsoftTenantId,
 		});
@@ -118,12 +118,11 @@ describe("loadAppConfig", () => {
 		).toThrow(/MICROSOFT_AUTH_AUTHORITY/);
 	});
 
-	it("rejects Microsoft redirect URI that does not match client id", () => {
+	it("rejects Microsoft redirect URI that is not a loopback URL", () => {
 		expect(() =>
 			loadAppConfig(
 				microsoftAuthEnv({
-					MICROSOFT_AUTH_REDIRECT_URI:
-						"msal99999999-2222-4333-8444-555555555555://auth",
+					MICROSOFT_AUTH_REDIRECT_URI: "https://example.com/auth",
 				}),
 			),
 		).toThrow(/MICROSOFT_AUTH_REDIRECT_URI/);
