@@ -1,12 +1,23 @@
 # Auth Provider Contract Notes
 
-The core auth provider contract is implemented in `src/main/auth/auth.types.ts`. This recipe explains how a client app can extend that contract for real providers without rewriting renderer auth routes, hooks, IPC consumers, or Settings logout.
+The core auth provider contract is implemented in `src/main/auth/auth.types.ts`. This recipe explains how a client app can extend or replace the Microsoft provider without rewriting renderer auth routes, hooks, IPC consumers, or Settings logout.
 
 ## Implemented Core Contract
 
 ```ts
 type AuthSignInRequest = {
-	strategy: "device";
+	strategy: "microsoft";
+};
+
+type AuthUser = {
+	id: string;
+	name: string;
+	displayName: string;
+	email?: string;
+	username?: string;
+	tenantId?: string;
+	provider: "microsoft";
+	providerLabel: "Microsoft 365";
 };
 
 type AuthProvider = {
@@ -18,7 +29,7 @@ type AuthProvider = {
 };
 ```
 
-The starter default is `DevAuthProvider`. It supports `{ strategy: "device" }`, stores provider credential metadata through secure storage, restores a session when the current OS user still matches the stored credential, refreshes by revalidating that credential, and deletes credential metadata on logout.
+The installed provider is `MicrosoftAuthProvider`. It supports `{ strategy: "microsoft" }`, stores MSAL token cache and minimal credential metadata through secure storage, restores a session with silent token acquisition, refreshes through MSAL, and clears durable auth state on logout.
 
 ## Why This Helps Provider Swaps
 
@@ -55,13 +66,13 @@ useSignOut();
 
 ## Optional Strategy Expansion
 
-A client app may expand `AuthSignInRequest` when it adds a real provider:
+A client app may expand `AuthSignInRequest` when it adds another provider or backend:
 
 ```ts
 type AuthSignInRequest =
-	| { strategy: "device" }
+	| { strategy: "microsoft" }
 	| { strategy: "credentials"; email: string; password: string }
-	| { strategy: "oauth"; provider: "google" | "microsoft" }
+	| { strategy: "oauth"; provider: "google" | "auth0" }
 	| { strategy: "activation-code"; code: string };
 ```
 

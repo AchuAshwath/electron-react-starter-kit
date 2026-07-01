@@ -31,7 +31,7 @@
 
 `electron-react-starter-kit` is a desktop application template for teams that want the Electron security and platform plumbing handled before product work begins.
 
-It ships a preload-first architecture, typed IPC, typed config boundaries, provider-neutral auth, secure credential storage, TanStack Router and Query, route error boundaries, persisted settings, desktop-aware theming, native file dialogs, notifications, logging, tests, and packaging scripts. Use it from GitHub with the **Use this template** button, then adapt the app-specific pieces for your client or product. The README is the polished front door; the implementation manual lives in [`docs/`](docs/README.md).
+It ships a preload-first architecture, typed IPC, typed config boundaries, Microsoft 365 auth, secure credential storage, TanStack Router and Query, route error boundaries, persisted settings, desktop-aware theming, native file dialogs, notifications, logging, tests, and packaging scripts. Use it from GitHub with the **Use this template** button, then adapt the app-specific pieces for your client or product. The README is the polished front door; the implementation manual lives in [`docs/`](docs/README.md).
 
 ## Built With
 
@@ -69,7 +69,7 @@ Discover the core stack driving this starter template:
 - TanStack Router file routes with `(auth)` and guarded `(app)` layout groups.
 - Root, auth, and app route error/pending/not-found fallbacks.
 - TanStack Query factories and hooks for IPC-backed renderer state.
-- Provider-neutral auth session contract backed by a replaceable development auth provider.
+- Microsoft 365 auth session contract backed by MSAL and secure token/cache storage.
 - Main-process secure storage for durable provider credential metadata.
 
 **Desktop platform features**
@@ -190,4 +190,4 @@ See the full [roadmap](docs/roadmap.md).
 
 ## Design Principle
 
-Core starter features should be useful to almost every serious Electron app. Provider-specific auth, auto-update publishing, durable file imports, and distribution hardening details are documented as recipes so each client app can make the right deployment and product choices.
+Core app infrastructure should be useful to almost every serious Electron app. This branch installs Microsoft 365 auth; other provider choices, auto-update publishing, durable file imports, and distribution hardening details are documented as recipes so each client app can make the right deployment and product choices.

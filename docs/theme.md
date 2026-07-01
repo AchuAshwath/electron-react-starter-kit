@@ -10,7 +10,7 @@ sequenceDiagram
 	participant Native as nativeTheme
 	participant Renderer as Renderer boot
 	participant Query as TanStack Query
-	participant Provider as ThemeProvider
+	participant ThemeContext as ThemeProvider
 	participant UI as ThemeSwitcher
 
 	Main->>Native: syncNativeThemeFromSettings()
@@ -18,12 +18,12 @@ sequenceDiagram
 	Renderer->>Renderer: readInitialThemeState()
 	Renderer->>Renderer: applyThemeClass(resolvedTheme)
 	Renderer->>Query: seed themeQueries.current()
-	Provider->>Query: useTheme()
-	UI->>Provider: setTheme("dark")
-	Provider->>Main: window.api.theme.setPreference("dark")
+	ThemeContext->>Query: useTheme()
+	UI->>ThemeContext: setTheme("dark")
+	ThemeContext->>Main: window.api.theme.setPreference("dark")
 	Main->>Native: nativeTheme.themeSource = "dark"
-	Main-->>Provider: ThemeState
-	Provider->>Renderer: applyThemeClass("dark")
+	Main-->>ThemeContext: ThemeState
+	ThemeContext->>Renderer: applyThemeClass("dark")
 ```
 
 ## Core Files

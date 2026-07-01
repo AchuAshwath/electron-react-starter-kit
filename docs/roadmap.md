@@ -38,11 +38,11 @@ flowchart LR
 - Vitest and Testing Library setup.
 - electron-builder packaging scripts.
 - Documentation split between core guides and optional recipes.
-- Provider-neutral auth session contract with `DevAuthProvider`, typed IPC, renderer hooks, secure credential metadata, session restore/refresh, Settings profile/logout, and guarded app routes.
+- Microsoft auth session contract with typed IPC, renderer hooks, secure token/cache storage, session restore/refresh, Settings profile/logout, and guarded app routes.
 - Main-process secure storage module backed by Electron `safeStorage` and encrypted `electron-store` blobs.
 - Typed config boundaries for main runtime env, renderer public env, settings, and secure storage.
 - Distribution docs and GitHub Actions workflow for current electron-builder outputs and draft GitHub Releases delivery.
-- Provider recipe docs for Microsoft Entra/MSAL, Google OAuth, Auth0/Okta/Cognito, custom backend auth, activation-code auth, and OS/domain/device gates.
+- Provider recipe docs for replacing the installed Microsoft provider with Google OAuth, Auth0/Okta/Cognito, custom backend auth, activation-code auth, or OS/domain gates.
 
 ## Core Starter Roadmap
 
@@ -61,7 +61,7 @@ Extend the shipped route fallback foundation with:
 
 These should stay in `docs/examples/` unless a specific app chooses to implement them.
 
-- Provider-specific implementation examples for Microsoft Entra/MSAL, Google OAuth, Auth0/Okta/Cognito, activation-code, OS/domain gate, or custom backend auth if the starter later chooses to include sample code.
+- Provider-specific implementation examples for Google OAuth, Auth0/Okta/Cognito, activation-code, OS/domain gate, or custom backend auth if the app later chooses to include sample code.
 - Durable imported-file workflow for apps that need app-owned file storage.
 - Auto-update recipe for apps that choose an update channel and publishing provider.
 - Distribution hardening guidance covering code signing, Electron fuses, custom protocol evaluation, and dependency update policy.

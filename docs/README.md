@@ -209,7 +209,7 @@ Checklist:
 - [TanStack Router](tanstack-router.md): route tree, `(app)` layout, pathless groups, route examples, fallbacks, and route checks.
 - [Error Boundaries](error-boundaries.md): root/auth/app route fallbacks, retry UI, not-found UI, and redirect behavior.
 - [Auth Routing](auth-routing.md): auth/app route groups, guarded app shell, login/signup routes, and safe `returnTo`.
-- [Auth Session Contract](auth-session-contract.md): provider-neutral session contract, `DevAuthProvider`, secure credential restore, IPC shape, hooks, and replacement pattern.
+- [Auth Session Contract](auth-session-contract.md): Microsoft session contract, secure token/cache storage, IPC shape, hooks, and replacement pattern.
 - [Secure Storage](secure-storage.md): main-process encrypted storage, auth credential namespacing, failure behavior, and provider boundaries.
 - [Config Boundaries](config.md): main runtime config, renderer public env, user settings, and secure storage boundaries.
 - [TanStack Query](tanstack-query.md): query client, query factories, mutations, cache lifetimes, and testing.
@@ -231,7 +231,7 @@ Checklist:
 
 - [Auth-ready architecture](examples/auth-ready-architecture.md): provider-neutral auth model with Microsoft Entra/MSAL as an example.
 - [Auth Provider Recipes](examples/auth-provider-recipes.md): decision guide for Microsoft, Google, Auth0/Okta/Cognito, backend, activation-code, and device/domain providers.
-- [Auth Provider Contract Notes](examples/auth-provider-contract.md): optional provider strategy ideas that build on the shipped core contract.
+- [Auth Provider Contract Notes](examples/auth-provider-contract.md): optional provider strategy ideas that build on the Microsoft auth contract.
 - [Secure Storage Notes](examples/secure-storage.md): optional provider-secret guidance that builds on the shipped secure storage module.
 - [GitHub Releases Distribution](examples/distribution-github-releases.md): manual release flow for uploading packaged artifacts to GitHub Releases.
 - [Imported file workflow](examples/imported-file-workflow.md): optional durable file import spec.

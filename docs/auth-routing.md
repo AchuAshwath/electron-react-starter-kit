@@ -1,6 +1,6 @@
 # Auth Routing
 
-The starter ships an auth route group for a local development auth flow. Auth pages stay outside the app shell, while protected app routes live under the `(app)` group.
+This branch ships auth routes for Microsoft 365 sign-in and sign-up. Auth pages stay outside the app shell, while protected app routes live under the `(app)` group.
 
 ## Current Shape
 
@@ -42,9 +42,13 @@ The login and signup routes own navigation and sanitized redirect parsing. They 
 />
 ```
 
-The form keeps the standard shadcn auth shape: email, password, forgot-password affordance on login, a disabled primary **Login** or **Create account** scaffold button, and a secondary provider-style action. In the starter, the credential buttons are disabled scaffold controls, and **Continue with device account** creates the development auth session.
+Both login and signup call the same Microsoft identity flow:
 
-The email/password controls are UI scaffold only. The shipped provider does not verify credentials or create durable accounts.
+```ts
+const signIn = useSignIn({ strategy: "microsoft" });
+```
+
+The UI has one working action: **Continue with Microsoft**. Future database behavior can decide whether that Microsoft identity maps to an existing app user or starts onboarding for a new app user. No username/password/JWT backend flow is installed in this branch.
 
 ## App Route Guard
 
@@ -72,10 +76,10 @@ This keeps the guard at the shell boundary instead of duplicating checks in ever
 Auth routes and app routes both wire route-specific fallback components from `route-fallbacks.tsx`.
 
 ```text
-missing session      -> redirect to /login
+missing session       -> redirect to /login
 session check loading -> route pending fallback
-auth IPC failure     -> auth/app error fallback
-unknown URL          -> root not-found fallback
+auth IPC failure      -> auth/app error fallback
+unknown URL           -> root not-found fallback
 ```
 
 A missing session is expected control flow, not an error. Only failed IPC calls, failed route loaders, or render crashes should reach error boundaries. See [Error Boundaries](error-boundaries.md).
@@ -116,4 +120,4 @@ Add a barrel only when the auth folder grows into a stable public component surf
 
 ## Provider Scope
 
-Core auth uses the development auth provider documented in [Auth Session Contract](auth-session-contract.md). Provider-specific integrations such as Microsoft Entra, Google, Auth0/Okta, activation-code, or custom backend auth belong in optional recipes and client apps.
+Core auth for this branch uses Microsoft auth documented in [Auth Session Contract](auth-session-contract.md). Other provider integrations such as Google, Auth0/Okta, activation-code, OS/domain gate, or custom backend auth belong in optional recipes and client apps.

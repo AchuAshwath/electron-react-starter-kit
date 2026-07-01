@@ -1,8 +1,8 @@
 # Auth Provider Recipes
 
-This recipe index explains common ways to replace `DevAuthProvider` in a client app. These are not installed starter behavior. The starter core keeps one provider-neutral auth contract and a local development provider so client apps can choose the identity model that fits their infrastructure.
+This recipe index explains common ways to replace `MicrosoftAuthProvider` in a client app. These are optional patterns. This branch installs Microsoft 365 auth, while other identity models should live behind the same `AuthProvider` contract.
 
-## Stable Starter Surface
+## Stable App Surface
 
 Most provider swaps should keep these pieces stable:
 
@@ -28,20 +28,20 @@ flowchart TB
 	Hosted -->|yes| HostedIdp["Auth0 / Okta / Cognito"]
 	Hosted -->|no| Backend{"First-party backend?"}
 	Backend -->|yes| Api["custom backend auth"]
-	Backend -->|no| Local["activation code or device/domain gate"]
+	Backend -->|no| Local["activation code or OS/domain gate"]
 ```
 
 ## Microsoft Entra / MSAL
 
-Use this when the client already has Microsoft 365 or Entra ID.
+This is the installed provider on this branch. Use it when the client already has Microsoft 365 or Entra ID.
 
-Typical changes:
+Current shape:
 
-- create an Entra app registration for a public desktop client
-- implement a main-process `MicrosoftEntraAuthProvider`
-- use authorization code with PKCE through a native-app-safe browser flow
-- store MSAL/provider cache through the provider SDK storage or the starter secure storage boundary
-- map account metadata into `AuthSession`
+- Entra app registration for a public desktop client
+- authorization code with PKCE through the system browser
+- loopback redirect URI for development and desktop-safe callback handling
+- MSAL token cache stored through the main-process secure storage boundary
+- Microsoft account metadata mapped into `AuthSession`
 
 Keep client secrets out of the desktop app. Public desktop clients cannot safely protect a client secret.
 
@@ -57,8 +57,6 @@ Typical changes:
 - handle redirect through a loopback server or custom protocol according to the chosen desktop pattern
 - store refresh/provider cache material in main-process secure storage
 - map Google profile metadata into `AuthSession`
-
-Do not treat the existing **Continue with device account** action as Google auth. It is the starter's local development provider action.
 
 ## Auth0 / Okta / Cognito
 
@@ -101,24 +99,22 @@ Typical changes:
 
 Activation codes are secrets after redemption. Do not persist them in settings or renderer state.
 
-## OS / Domain / Device Gate
+## OS / Domain Gate
 
-Use this for managed internal tools where access is based on the device, OS user, domain, or enterprise network policy.
+Use this for managed internal tools where access is based on the OS user, domain, enterprise network, or device posture.
 
 Typical changes:
 
-- replace `DevAuthProvider` with a stricter provider that validates OS/domain/device state
-- verify policy in main process
+- implement a provider that validates OS/domain state in main process
+- verify policy with a backend or trusted local enterprise signal
 - store only the minimum credential or policy metadata needed to restore the session
 - make failure messages safe and non-enumerating
 
 This is closer to access gating than identity federation. Document the policy clearly for the client app.
 
-## What Stays Out Of Core
+## What Stays Out Of This Branch
 
-The starter should not pick a default real identity provider. Do not add Google, Microsoft, Auth0, backend auth, activation-code auth, or domain policy to core unless the product itself requires it.
-
-Use provider recipes to guide client apps while keeping the starter reusable.
+This branch does not install Google, Auth0, backend auth, activation-code auth, or domain policy. Use provider recipes to guide client apps while keeping the Microsoft implementation focused.
 
 ## Implementation Checklist
 
