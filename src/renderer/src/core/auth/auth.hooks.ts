@@ -2,13 +2,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { AuthSignInRequest } from "../../../../main/auth/auth.types";
 import { authQueries } from "./auth.queries";
 
-const deviceSignInRequest = { strategy: "device" } as const;
+const microsoftSignInRequest = { strategy: "microsoft" } as const;
 
 export function useAuthSession() {
 	return useQuery(authQueries.session());
 }
 
-export function useSignIn(request: AuthSignInRequest = deviceSignInRequest) {
+export function useSignIn(request: AuthSignInRequest = microsoftSignInRequest) {
 	const queryClient = useQueryClient();
 	const queryKey = authQueries.session().queryKey;
 

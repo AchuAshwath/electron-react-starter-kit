@@ -4,10 +4,14 @@ import { authQueries } from "./auth.queries";
 
 const session: AuthSession = {
 	user: {
-		id: "ashwath.n",
-		name: "ashwath.n",
-		username: "ashwath.n",
-		provider: "dev",
+		displayName: "Ashwath N",
+		email: "ashwath.n@example.com",
+		id: "home-account-id",
+		name: "Ashwath N",
+		provider: "microsoft",
+		providerLabel: "Microsoft 365",
+		tenantId: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+		username: "ashwath.n@example.com",
 	},
 	issuedAt: "2026-06-25T10:30:00.000Z",
 };

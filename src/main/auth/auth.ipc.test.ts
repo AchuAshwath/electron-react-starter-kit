@@ -20,19 +20,23 @@ vi.mock("../logging/logger", () => ({
 
 const session: AuthSession = {
 	user: {
-		id: "ashwath.n",
-		name: "ashwath.n",
-		username: "ashwath.n",
-		provider: "dev",
+		displayName: "Ashwath N",
+		email: "ashwath.n@example.com",
+		id: "home-account-id",
+		name: "Ashwath N",
+		provider: "microsoft",
+		providerLabel: "Microsoft 365",
+		tenantId: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+		username: "ashwath.n@example.com",
 	},
 	issuedAt: "2026-06-25T10:30:00.000Z",
 };
 
-const signInRequest: AuthSignInRequest = { strategy: "device" };
+const signInRequest: AuthSignInRequest = { strategy: "microsoft" };
 
 function createTestRegistrar(providerOverrides: Partial<AuthProvider> = {}) {
 	const provider: AuthProvider = {
-		id: "dev",
+		id: "microsoft",
 		getSession: vi.fn().mockResolvedValue(session),
 		refreshSession: vi.fn().mockResolvedValue(session),
 		signIn: vi.fn().mockResolvedValue(session),
@@ -90,19 +94,19 @@ describe("registerAuthIpcHandlers", () => {
 		).resolves.toEqual(session);
 		expect(provider.refreshSession).toHaveBeenCalledTimes(1);
 		expect(authLoggerMock.info).toHaveBeenCalledWith("Auth session refreshed", {
-			provider: "dev",
+			provider: "microsoft",
 			signedIn: true,
 		});
 	});
 
-	it("registers sign-in payload validation", () => {
+	it("registers Microsoft-only sign-in payload validation", () => {
 		const { handlers } = createTestRegistrar();
 		const signInHandler = handlers.get(authIpcChannels.signIn);
 
 		expect(signInHandler?.input?.safeParse(signInRequest).success).toBe(true);
 		expect(
-			signInHandler?.input?.safeParse({ strategy: "microsoft" }).success,
-		).toBe(true);
+			signInHandler?.input?.safeParse({ strategy: "device" }).success,
+		).toBe(false);
 		expect(signInHandler?.input?.safeParse({ strategy: "oauth" }).success).toBe(
 			false,
 		);
@@ -116,14 +120,14 @@ describe("registerAuthIpcHandlers", () => {
 		).resolves.toEqual(session);
 		expect(provider.signIn).toHaveBeenCalledWith(signInRequest);
 		expect(authLoggerMock.info).toHaveBeenCalledWith("Auth session created", {
-			provider: "dev",
-			strategy: "device",
+			provider: "microsoft",
+			strategy: "microsoft",
 		});
 	});
 
 	it("wraps sign-in failures in a renderer-safe IPC error", async () => {
 		const { handlers } = createTestRegistrar({
-			signIn: vi.fn().mockRejectedValue(new Error("raw OS failure")),
+			signIn: vi.fn().mockRejectedValue(new Error("raw provider failure")),
 		});
 
 		await expect(
@@ -135,8 +139,8 @@ describe("registerAuthIpcHandlers", () => {
 		expect(authLoggerMock.warn).toHaveBeenCalledWith(
 			"Auth session creation failed",
 			{
-				provider: "dev",
-				strategy: "device",
+				provider: "microsoft",
+				strategy: "microsoft",
 			},
 		);
 	});
@@ -149,7 +153,7 @@ describe("registerAuthIpcHandlers", () => {
 		).resolves.toBeUndefined();
 		expect(provider.signOut).toHaveBeenCalledTimes(1);
 		expect(authLoggerMock.info).toHaveBeenCalledWith("Auth session cleared", {
-			provider: "dev",
+			provider: "microsoft",
 		});
 	});
 });
