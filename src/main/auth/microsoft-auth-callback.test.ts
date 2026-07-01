@@ -1,222 +1,194 @@
-import { describe, expect, it, vi } from "vitest";
-import type { MicrosoftAuthConfig } from "../config/app-config";
-import {
-	MicrosoftAuthCallbackCoordinator,
-	registerMicrosoftAuthProtocolHandlers,
-} from "./microsoft-auth-callback";
+import { createServer, get, type Server } from "node:http";
+import type { AddressInfo } from "node:net";
+import { describe, expect, it } from "vitest";
+import { MicrosoftAuthCallbackServer } from "./microsoft-auth-callback";
 
-function createMicrosoftAuthConfig(): MicrosoftAuthConfig {
-	const tenantId = "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee";
-	const clientId = "11111111-2222-4333-8444-555555555555";
+async function getFreePort(): Promise<number> {
+	const server = createServer();
+	await new Promise<void>((resolve) => {
+		server.listen(0, "127.0.0.1", resolve);
+	});
+	const address = server.address() as AddressInfo;
+	const port = address.port;
+	await new Promise<void>((resolve, reject) => {
+		server.close((error) => (error ? reject(error) : resolve()));
+	});
+
+	return port;
+}
+
+function requestCallback(url: string): Promise<{
+	body: string;
+	headers: Record<string, string | string[] | undefined>;
+	statusCode: number;
+}> {
+	return new Promise((resolve, reject) => {
+		get(url, (response) => {
+			let body = "";
+			response.setEncoding("utf8");
+			response.on("data", (chunk) => {
+				body += chunk;
+			});
+			response.on("end", () => {
+				resolve({
+					body,
+					headers: response.headers,
+					statusCode: response.statusCode ?? 0,
+				});
+			});
+		}).on("error", reject);
+	});
+}
+
+async function createCallbackServer(timeoutMs = 1000) {
+	const port = await getFreePort();
+	const redirectUri = `http://127.0.0.1:${port}/auth/callback`;
 
 	return {
-		authority: new URL(`https://login.microsoftonline.com/${tenantId}`),
-		clientId,
-		redirectUri: `msal${clientId}://auth`,
-		scopes: ["openid", "profile", "email", "offline_access", "User.Read"],
-		tenantId,
+		callbackUrl: (query: string) => `${redirectUri}?${query}`,
+		origin: `http://127.0.0.1:${port}`,
+		server: new MicrosoftAuthCallbackServer({ redirectUri, timeoutMs }),
 	};
 }
 
-function createProtocolApp({
-	hasSingleInstanceLock = true,
-}: {
-	hasSingleInstanceLock?: boolean;
-} = {}) {
-	return {
-		on: vi.fn(),
-		quit: vi.fn(),
-		requestSingleInstanceLock: vi.fn(() => hasSingleInstanceLock),
-		setAsDefaultProtocolClient: vi.fn(),
-	};
+async function createOccupiedPortServer(): Promise<{
+	port: number;
+	server: Server;
+}> {
+	const server = createServer((_request, response) => {
+		response.end("occupied");
+	});
+	await new Promise<void>((resolve) => {
+		server.listen(0, "127.0.0.1", resolve);
+	});
+	const address = server.address() as AddressInfo;
+
+	return { port: address.port, server };
 }
 
-describe("MicrosoftAuthCallbackCoordinator", () => {
-	it("resolves a pending authorization when the redirect URL contains the expected state and code", async () => {
-		const coordinator = new MicrosoftAuthCallbackCoordinator({
-			redirectUri: "msal11111111-2222-4333-8444-555555555555://auth",
-		});
-
-		const authorizationCode = coordinator.waitForAuthorizationCode({
+describe("MicrosoftAuthCallbackServer", () => {
+	it("redirects to a clean completion page after receiving the expected state and code", async () => {
+		const { callbackUrl, origin, server } = await createCallbackServer();
+		const authorizationCode = server.waitForAuthorizationCode({
 			state: "state",
 		});
-		const handled = coordinator.handleRedirectUrl(
-			"msal11111111-2222-4333-8444-555555555555://auth?code=authorization-code&state=state",
-		);
 
-		expect(handled).toBe(true);
+		const callbackResponse = await requestCallback(
+			callbackUrl("code=authorization-code&state=state"),
+		);
+		const completionResponse = await requestCallback(`${origin}/auth/complete`);
+
+		expect(callbackResponse.statusCode).toBe(303);
+		expect(callbackResponse.headers.location).toBe("/auth/complete");
+		expect(completionResponse.statusCode).toBe(200);
+		expect(completionResponse.body).toContain("Sign-in complete");
 		await expect(authorizationCode).resolves.toBe("authorization-code");
 	});
 
-	it("ignores URLs that do not match the configured redirect URI", () => {
-		const coordinator = new MicrosoftAuthCallbackCoordinator({
-			redirectUri: "msal11111111-2222-4333-8444-555555555555://auth",
+	it("returns 404 for unrelated loopback paths", async () => {
+		const { server } = await createCallbackServer();
+		const authorizationCode = server.waitForAuthorizationCode({
+			state: "state",
 		});
+		const origin = server.getCallbackOriginForTest();
 
-		expect(coordinator.handleRedirectUrl("https://example.com/auth")).toBe(
-			false,
+		const response = await requestCallback(`${origin}/other?code=ignored`);
+
+		expect(response.statusCode).toBe(404);
+		await requestCallback(
+			`${origin}/auth/callback?code=authorization-code&state=state`,
 		);
-		expect(
-			coordinator.handleRedirectUrl(
-				"msaldifferent-client://auth?code=authorization-code&state=state",
-			),
-		).toBe(false);
+		await expect(authorizationCode).resolves.toBe("authorization-code");
 	});
 
-	it("rejects a pending authorization when the redirect state does not match", async () => {
-		const coordinator = new MicrosoftAuthCallbackCoordinator({
-			redirectUri: "msal11111111-2222-4333-8444-555555555555://auth",
-		});
-
-		const authorizationCode = coordinator.waitForAuthorizationCode({
+	it("rejects a pending authorization when the callback state does not match", async () => {
+		const { callbackUrl, server } = await createCallbackServer();
+		const authorizationCode = server.waitForAuthorizationCode({
 			state: "expected-state",
 		});
-		coordinator.handleRedirectUrl(
-			"msal11111111-2222-4333-8444-555555555555://auth?code=authorization-code&state=wrong-state",
-		);
-
-		await expect(authorizationCode).rejects.toThrow(
+		const rejectionExpectation = expect(authorizationCode).rejects.toThrow(
 			"Microsoft sign-in state did not match.",
 		);
-	});
 
-	it("rejects a pending authorization when the redirect contains an error", async () => {
-		const coordinator = new MicrosoftAuthCallbackCoordinator({
-			redirectUri: "msal11111111-2222-4333-8444-555555555555://auth",
-		});
-
-		const authorizationCode = coordinator.waitForAuthorizationCode({
-			state: "state",
-		});
-		coordinator.handleRedirectUrl(
-			"msal11111111-2222-4333-8444-555555555555://auth?error=access_denied&state=state",
+		const response = await requestCallback(
+			callbackUrl("code=authorization-code&state=wrong-state"),
 		);
 
-		await expect(authorizationCode).rejects.toThrow(
+		expect(response.statusCode).toBe(303);
+		expect(response.headers.location).toBe("/auth/error");
+		await rejectionExpectation;
+	});
+
+	it("rejects a pending authorization when Microsoft returns an error", async () => {
+		const { callbackUrl, server } = await createCallbackServer();
+		const authorizationCode = server.waitForAuthorizationCode({
+			state: "state",
+		});
+		const rejectionExpectation = expect(authorizationCode).rejects.toThrow(
 			"Microsoft sign-in was cancelled or denied.",
 		);
+
+		const response = await requestCallback(
+			callbackUrl("error=access_denied&state=state"),
+		);
+
+		expect(response.statusCode).toBe(303);
+		expect(response.headers.location).toBe("/auth/error");
+		await rejectionExpectation;
 	});
 
-	it("rejects a pending authorization when the redirect does not include a code", async () => {
-		const coordinator = new MicrosoftAuthCallbackCoordinator({
-			redirectUri: "msal11111111-2222-4333-8444-555555555555://auth",
-		});
-
-		const authorizationCode = coordinator.waitForAuthorizationCode({
+	it("rejects a pending authorization when the callback does not include a code", async () => {
+		const { callbackUrl, server } = await createCallbackServer();
+		const authorizationCode = server.waitForAuthorizationCode({
 			state: "state",
 		});
-		coordinator.handleRedirectUrl(
-			"msal11111111-2222-4333-8444-555555555555://auth?state=state",
-		);
-
-		await expect(authorizationCode).rejects.toThrow(
+		const rejectionExpectation = expect(authorizationCode).rejects.toThrow(
 			"Microsoft sign-in did not return an authorization code.",
 		);
+
+		const response = await requestCallback(callbackUrl("state=state"));
+
+		expect(response.statusCode).toBe(303);
+		expect(response.headers.location).toBe("/auth/error");
+		await rejectionExpectation;
 	});
 
 	it("rejects a second pending authorization", async () => {
-		const coordinator = new MicrosoftAuthCallbackCoordinator({
-			redirectUri: "msal11111111-2222-4333-8444-555555555555://auth",
-		});
-
-		const authorizationCode = coordinator.waitForAuthorizationCode({
+		const { callbackUrl, server } = await createCallbackServer();
+		const authorizationCode = server.waitForAuthorizationCode({
 			state: "state",
 		});
 
 		await expect(
-			coordinator.waitForAuthorizationCode({ state: "other-state" }),
+			server.waitForAuthorizationCode({ state: "other-state" }),
 		).rejects.toThrow("A Microsoft sign-in flow is already pending.");
 
-		coordinator.handleRedirectUrl(
-			"msal11111111-2222-4333-8444-555555555555://auth?code=authorization-code&state=state",
-		);
+		await requestCallback(callbackUrl("code=authorization-code&state=state"));
 		await expect(authorizationCode).resolves.toBe("authorization-code");
 	});
 
-	it("times out when a redirect never arrives", async () => {
-		vi.useFakeTimers();
-		const coordinator = new MicrosoftAuthCallbackCoordinator({
-			redirectUri: "msal11111111-2222-4333-8444-555555555555://auth",
-			timeoutMs: 1000,
-		});
+	it("times out when a callback never arrives", async () => {
+		const { server } = await createCallbackServer(10);
 
-		const authorizationCode = coordinator.waitForAuthorizationCode({
-			state: "state",
-		});
-
-		vi.advanceTimersByTime(1000);
-
-		await expect(authorizationCode).rejects.toThrow(
-			"Microsoft sign-in timed out.",
-		);
-		vi.useRealTimers();
-	});
-});
-
-describe("registerMicrosoftAuthProtocolHandlers", () => {
-	it("registers the Microsoft redirect protocol and second-instance handlers", () => {
-		const app = createProtocolApp();
-		const coordinator = new MicrosoftAuthCallbackCoordinator({
-			redirectUri: createMicrosoftAuthConfig().redirectUri,
-		});
-
-		expect(
-			registerMicrosoftAuthProtocolHandlers({
-				app,
-				config: createMicrosoftAuthConfig(),
-				coordinator,
-				argv: ["electron.exe"],
-				execPath: "electron.exe",
-				isDefaultApp: false,
-			}),
-		).toBe(true);
-
-		expect(app.setAsDefaultProtocolClient).toHaveBeenCalledWith(
-			"msal11111111-2222-4333-8444-555555555555",
-		);
-		expect(app.requestSingleInstanceLock).toHaveBeenCalled();
-		expect(app.on).toHaveBeenCalledWith("open-url", expect.any(Function));
-		expect(app.on).toHaveBeenCalledWith(
-			"second-instance",
-			expect.any(Function),
-		);
+		await expect(
+			server.waitForAuthorizationCode({ state: "state" }),
+		).rejects.toThrow("Microsoft sign-in timed out.");
 	});
 
-	it("includes the app entry path when running as Electron default app", () => {
-		const app = createProtocolApp();
-		const coordinator = new MicrosoftAuthCallbackCoordinator({
-			redirectUri: createMicrosoftAuthConfig().redirectUri,
+	it("fails clearly when the configured callback port is already in use", async () => {
+		const { port, server: occupiedServer } = await createOccupiedPortServer();
+		const callbackServer = new MicrosoftAuthCallbackServer({
+			redirectUri: `http://127.0.0.1:${port}/auth/callback`,
 		});
 
-		registerMicrosoftAuthProtocolHandlers({
-			app,
-			config: createMicrosoftAuthConfig(),
-			coordinator,
-			argv: ["electron.exe", "app-main.js"],
-			execPath: "electron.exe",
-			isDefaultApp: true,
-		});
-
-		expect(app.setAsDefaultProtocolClient).toHaveBeenCalledWith(
-			"msal11111111-2222-4333-8444-555555555555",
-			"electron.exe",
-			["app-main.js"],
-		);
-	});
-
-	it("quits and returns false when another instance owns the lock", () => {
-		const app = createProtocolApp({ hasSingleInstanceLock: false });
-		const coordinator = new MicrosoftAuthCallbackCoordinator({
-			redirectUri: createMicrosoftAuthConfig().redirectUri,
-		});
-
-		expect(
-			registerMicrosoftAuthProtocolHandlers({
-				app,
-				config: createMicrosoftAuthConfig(),
-				coordinator,
-			}),
-		).toBe(false);
-		expect(app.quit).toHaveBeenCalled();
+		try {
+			await expect(
+				callbackServer.waitForAuthorizationCode({ state: "state" }),
+			).rejects.toThrow("Microsoft auth callback server failed to start");
+		} finally {
+			await new Promise<void>((resolve, reject) => {
+				occupiedServer.close((error) => (error ? reject(error) : resolve()));
+			});
+		}
 	});
 });
