@@ -10,9 +10,7 @@ import {
 	Field,
 	FieldDescription,
 	FieldGroup,
-	FieldLabel,
 } from "@renderer/components/ui/field";
-import { Input } from "@renderer/components/ui/input";
 import { cn } from "@renderer/lib/utils";
 import { Link } from "@tanstack/react-router";
 import type { ComponentProps } from "react";
@@ -53,59 +51,21 @@ function AuthForm({
 			<Card>
 				<CardHeader>
 					<CardTitle>
-						{isSignup ? "Create your account" : "Login to your account"}
+						{isSignup ? "Create your account" : "Sign in with Microsoft"}
 					</CardTitle>
 					<CardDescription>
 						{isSignup
-							? "Enter your email below to create your account"
-							: "Enter your email below to login to your account"}
+							? "Create your app account using your Microsoft 365 identity."
+							: "Use your Microsoft 365 account to continue."}
 					</CardDescription>
 				</CardHeader>
 				<CardContent>
 					<form onSubmit={handleSubmit}>
 						<FieldGroup>
 							<Field>
-								<FieldLabel htmlFor="email">Email</FieldLabel>
-								<Input
-									id="email"
-									type="email"
-									placeholder="m@example.com"
-									autoComplete="email"
-									disabled={isLoading}
-									required
-								/>
-							</Field>
-							<Field>
-								<div className="flex items-center">
-									<FieldLabel htmlFor="password">Password</FieldLabel>
-									{isSignup ? null : (
-										<button
-											type="button"
-											className="ml-auto inline-block text-sm underline-offset-4 hover:underline"
-										>
-											Forgot your password?
-										</button>
-									)}
-								</div>
-								<Input
-									id="password"
-									type="password"
-									autoComplete={isSignup ? "new-password" : "current-password"}
-									disabled={isLoading}
-									required
-								/>
-							</Field>
-							<Field>
-								<Button type="submit" disabled>
-									{getPrimaryButtonLabel({ isLoading, isSignup })}
-								</Button>
-								<Button
-									type="button"
-									variant="outline"
-									disabled={isLoading}
-									onClick={runAuthAction}
-								>
-									{isLoading ? "Continuing..." : "Continue with device account"}
+								<Button type="submit" disabled={isLoading} className="w-full">
+									<MicrosoftIcon />
+									{isLoading ? "Continuing..." : "Continue with Microsoft"}
 								</Button>
 								{errorMessage ? (
 									<p
@@ -138,18 +98,15 @@ function AuthForm({
 	);
 }
 
-function getPrimaryButtonLabel({
-	isLoading,
-	isSignup,
-}: {
-	isLoading: boolean;
-	isSignup: boolean;
-}): string {
-	if (isLoading) {
-		return isSignup ? "Creating account..." : "Logging in...";
-	}
-
-	return isSignup ? "Create account" : "Login";
+function MicrosoftIcon() {
+	return (
+		<span className="grid size-4 grid-cols-2 gap-0.5" aria-hidden="true">
+			<span className="bg-[#f25022]" />
+			<span className="bg-[#7fba00]" />
+			<span className="bg-[#00a4ef]" />
+			<span className="bg-[#ffb900]" />
+		</span>
+	);
 }
 
 function AuthModeLink({
@@ -165,7 +122,7 @@ function AuthModeLink({
 			search={returnTo ? { returnTo } : {}}
 			className="font-medium underline-offset-4 hover:underline"
 		>
-			{mode === "login" ? "Login" : "Sign up"}
+			{mode === "login" ? "Sign in" : "Sign up"}
 		</Link>
 	);
 }

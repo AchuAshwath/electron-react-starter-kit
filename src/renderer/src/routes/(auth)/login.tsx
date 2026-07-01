@@ -30,7 +30,7 @@ export const Route = createFileRoute("/(auth)/login")({
 function LoginPage(): React.JSX.Element {
 	const router = useRouter();
 	const search = Route.useSearch();
-	const signIn = useSignIn();
+	const signIn = useSignIn({ strategy: "microsoft" });
 
 	async function handleSignIn(): Promise<void> {
 		await signIn.mutateAsync();
