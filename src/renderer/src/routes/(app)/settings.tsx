@@ -133,8 +133,9 @@ function SettingsRoute(): React.JSX.Element {
 		return (
 			<div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8">
 				<AccountSection
+					email={authUser?.email}
 					name={getAuthUserDisplayName(authUser)}
-					provider={getAuthProviderLabel(authUser?.provider)}
+					providerLabel={getAuthProviderLabel(authUser?.providerLabel)}
 					isLoggingOut={signOut.isPending}
 					onLogout={() => {
 						void handleSignOut();
@@ -187,8 +188,9 @@ function SettingsRoute(): React.JSX.Element {
 	return (
 		<div className="mx-auto flex w-full max-w-3xl flex-col gap-6 px-6 py-8">
 			<AccountSection
+				email={authUser?.email}
 				name={getAuthUserDisplayName(authUser)}
-				provider={getAuthProviderLabel(authUser?.provider)}
+				providerLabel={getAuthProviderLabel(authUser?.providerLabel)}
 				isLoggingOut={signOut.isPending}
 				onLogout={() => {
 					void handleSignOut();
@@ -262,15 +264,17 @@ function SettingsRoute(): React.JSX.Element {
 }
 
 function AccountSection({
+	email,
 	isLoggingOut,
 	name,
 	onLogout,
-	provider,
+	providerLabel,
 }: {
+	email: string | undefined;
 	isLoggingOut: boolean;
 	name: string;
 	onLogout: () => void;
-	provider: string;
+	providerLabel: string;
 }): React.JSX.Element {
 	return (
 		<section className="flex min-w-0 flex-col gap-3 rounded-xl border border-border bg-background p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
@@ -280,7 +284,12 @@ function AccountSection({
 				</div>
 				<div className="min-w-0">
 					<p className="truncate text-sm font-medium">{name}</p>
-					<p className="truncate text-xs text-muted-foreground">{provider}</p>
+					{email ? (
+						<p className="truncate text-xs text-muted-foreground">{email}</p>
+					) : null}
+					<p className="truncate text-xs text-muted-foreground">
+						Signed in with {providerLabel}
+					</p>
 				</div>
 			</div>
 			<Button
@@ -297,21 +306,25 @@ function AccountSection({
 }
 
 function getAuthUserDisplayName(
-	user: { name: string; username?: string } | undefined,
+	user:
+		| { displayName?: string; email?: string; name: string; username?: string }
+		| undefined,
 ): string {
-	return user?.name || user?.username || "Device account";
+	return (
+		user?.displayName ||
+		user?.name ||
+		user?.email ||
+		user?.username ||
+		"Microsoft account"
+	);
 }
 
 function getAuthUserInitial(name: string): string {
 	return name.trim().charAt(0).toUpperCase() || "?";
 }
 
-function getAuthProviderLabel(provider: string | undefined): string {
-	if (provider === "dev" || provider === "os-user-dev") {
-		return "Signed in with device account";
-	}
-
-	return provider ? `Provider: ${provider}` : "Local app session";
+function getAuthProviderLabel(providerLabel: string | undefined): string {
+	return providerLabel ?? "Microsoft 365";
 }
 
 function findMatchingWindowSizePreset(
