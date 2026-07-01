@@ -3,8 +3,12 @@ import { z } from "zod";
 export type AuthUser = {
 	id: string;
 	name: string;
+	displayName: string;
+	email?: string;
 	username?: string;
-	provider: string;
+	tenantId?: string;
+	provider: "microsoft";
+	providerLabel: "Microsoft 365";
 };
 
 export type AuthSession = {
@@ -14,7 +18,7 @@ export type AuthSession = {
 };
 
 export const authSignInRequestSchema = z.object({
-	strategy: z.enum(["device", "microsoft"]),
+	strategy: z.literal("microsoft"),
 });
 
 export type AuthSignInRequest = z.infer<typeof authSignInRequestSchema>;

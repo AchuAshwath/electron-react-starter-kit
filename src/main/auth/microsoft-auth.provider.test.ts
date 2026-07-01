@@ -123,9 +123,7 @@ function createStoredCredential(overrides: Record<string, unknown> = {}) {
 	return JSON.stringify({
 		provider: microsoftAuthProviderId,
 		homeAccountId: "home-account-id",
-		name: "Ashwath N",
 		tenantId: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
-		username: "ashwath.n@example.com",
 		issuedAt: "2026-06-25T10:30:00.000Z",
 		expiresAt: "2026-06-25T11:30:00.000Z",
 		...overrides,
@@ -176,10 +174,14 @@ describe("MicrosoftAuthProvider", () => {
 
 		await expect(provider.signIn(microsoftSignInRequest)).resolves.toEqual({
 			user: {
+				displayName: "Ashwath N",
+				email: "ashwath.n@example.com",
 				id: "home-account-id",
 				name: "Ashwath N",
-				username: "ashwath.n@example.com",
 				provider: microsoftAuthProviderId,
+				providerLabel: "Microsoft 365",
+				tenantId: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+				username: "ashwath.n@example.com",
 			},
 			issuedAt: "2026-06-25T10:30:00.000Z",
 			expiresAt: "2026-06-25T11:30:00.000Z",
@@ -271,9 +273,7 @@ describe("MicrosoftAuthProvider", () => {
 			JSON.stringify({
 				provider: microsoftAuthProviderId,
 				homeAccountId: "home-account-id",
-				name: "Ashwath N",
 				tenantId: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
-				username: "ashwath.n@example.com",
 				issuedAt: "2026-06-25T10:30:00.000Z",
 				expiresAt: "2026-06-25T11:30:00.000Z",
 			}),
@@ -359,10 +359,14 @@ describe("MicrosoftAuthProvider", () => {
 
 		await expect(provider.getSession()).resolves.toEqual({
 			user: {
+				displayName: "Ashwath N",
+				email: "ashwath.n@example.com",
 				id: "home-account-id",
 				name: "Ashwath N",
-				username: "ashwath.n@example.com",
 				provider: microsoftAuthProviderId,
+				providerLabel: "Microsoft 365",
+				tenantId: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+				username: "ashwath.n@example.com",
 			},
 			issuedAt: "2026-06-25T11:31:00.000Z",
 			expiresAt: "2026-06-25T12:30:00.000Z",
@@ -389,10 +393,14 @@ describe("MicrosoftAuthProvider", () => {
 
 		await expect(provider.getSession()).resolves.toEqual({
 			user: {
+				displayName: "Ashwath N",
+				email: "ashwath.n@example.com",
 				id: "home-account-id",
 				name: "Ashwath N",
-				username: "ashwath.n@example.com",
 				provider: microsoftAuthProviderId,
+				providerLabel: "Microsoft 365",
+				tenantId: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+				username: "ashwath.n@example.com",
 			},
 			issuedAt: "2026-06-25T12:00:00.000Z",
 			expiresAt: "2026-06-25T12:30:00.000Z",
@@ -496,10 +504,14 @@ describe("MicrosoftAuthProvider", () => {
 
 		await expect(provider.refreshSession()).resolves.toEqual({
 			user: {
+				displayName: "Ashwath N",
+				email: "ashwath.n@example.com",
 				id: "home-account-id",
 				name: "Ashwath N",
-				username: "ashwath.n@example.com",
 				provider: microsoftAuthProviderId,
+				providerLabel: "Microsoft 365",
+				tenantId: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee",
+				username: "ashwath.n@example.com",
 			},
 			issuedAt: "2026-06-25T12:00:00.000Z",
 			expiresAt: "2026-06-25T11:30:00.000Z",
@@ -533,7 +545,7 @@ describe("MicrosoftAuthProvider", () => {
 		);
 	});
 
-	it("rejects device sign-in because Microsoft auth only supports the Microsoft strategy", async () => {
+	it("rejects non-Microsoft sign-in requests at runtime", async () => {
 		const provider = new MicrosoftAuthProvider({
 			config: createMicrosoftAuthConfig(),
 			credentialStore: createCredentialStore(),
@@ -541,9 +553,9 @@ describe("MicrosoftAuthProvider", () => {
 			msalClient: createMsalClient(),
 		});
 
-		await expect(provider.signIn({ strategy: "device" })).rejects.toThrow(
-			"Unsupported auth strategy.",
-		);
+		await expect(
+			provider.signIn({ strategy: "device" } as unknown as AuthSignInRequest),
+		).rejects.toThrow("Unsupported auth strategy.");
 	});
 
 	it("fails when Microsoft does not return account metadata", async () => {

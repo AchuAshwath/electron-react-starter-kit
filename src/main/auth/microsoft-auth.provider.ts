@@ -24,6 +24,7 @@ import {
 } from "./microsoft-token-cache.store";
 
 export const microsoftAuthProviderId = "microsoft";
+const microsoftAuthProviderLabel = "Microsoft 365";
 
 type MicrosoftAuthClient = Pick<
 	PublicClientApplication,
@@ -66,9 +67,7 @@ type MicrosoftAuthProviderOptions = {
 const microsoftCredentialSchema = z.object({
 	provider: z.literal(microsoftAuthProviderId),
 	homeAccountId: z.string().min(1),
-	name: z.string().min(1),
 	tenantId: z.string().min(1),
-	username: z.string().min(1),
 	issuedAt: z.string().min(1),
 	expiresAt: z.string().min(1).optional(),
 });
@@ -240,20 +239,25 @@ export class MicrosoftAuthProvider implements AuthProvider {
 			throw new Error("Microsoft auth did not return an account.");
 		}
 
-		const username = account.username?.trim();
-		const name = account.name?.trim() || username;
+		const username = account.username?.trim() || undefined;
+		const displayName = account.name?.trim() || username;
 		const id = account.homeAccountId?.trim() || account.localAccountId?.trim();
+		const tenantId = account.tenantId?.trim() || this.config.tenantId;
 
-		if (!id || !name || !username) {
+		if (!id || !displayName) {
 			throw new Error("Microsoft account metadata is incomplete.");
 		}
 
 		return {
 			user: {
+				displayName,
+				email: username,
 				id,
-				name,
-				username,
+				name: displayName,
 				provider: microsoftAuthProviderId,
+				providerLabel: microsoftAuthProviderLabel,
+				tenantId,
+				username,
 			},
 			issuedAt: this.now().toISOString(),
 			expiresAt: tokenResult.expiresOn?.toISOString(),
@@ -263,17 +267,10 @@ export class MicrosoftAuthProvider implements AuthProvider {
 	private createCredentialFromSession(
 		session: AuthSession,
 	): MicrosoftCredential {
-		const username = session.user.username;
-		if (!username) {
-			throw new Error("Microsoft session username is missing.");
-		}
-
 		return {
 			provider: microsoftAuthProviderId,
 			homeAccountId: session.user.id,
-			name: session.user.name,
-			tenantId: this.config.tenantId,
-			username,
+			tenantId: session.user.tenantId ?? this.config.tenantId,
 			issuedAt: session.issuedAt,
 			expiresAt: session.expiresAt,
 		};
